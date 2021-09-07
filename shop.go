@@ -1,13 +1,19 @@
 package mop_shop
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 type ShopItem struct {
-	ID            int      `gorm:"primaryKey" json:"id"`
-	ItemName      string   `gorm:"not null;type:varchar(255);" json:"item_name"`
-	ItemPicture   *string  `gorm:"default:null;type:varchar(255);" json:"item_picture"`
-	ItemPrice     float32  `gorm:"not null;" json:"item_price"`
-	ItemSalePrice *float32 `gorm:"default: null;" json:"item_sale_price"`
+	ID            int        `gorm:"primaryKey" json:"id"`
+	ItemName      string     `gorm:"not null;type:varchar(255);" json:"item_name"`
+	ItemPicture   *string    `gorm:"default:null;type:varchar(255);" json:"item_picture"`
+	ItemPrice     float32    `gorm:"not null;" json:"item_price"`
+	ItemSalePrice *float32   `gorm:"default: null;" json:"item_sale_price"`
+	CreatedAt     time.Time  `gorm:"not null;" json:"created_at"`
+	UpdatedAt     time.Time  `gorm:"not null;" json:"updated_at"`
+	DeletedAt     *time.Time `json:"-"`
 	db            *gorm.DB
 }
 
