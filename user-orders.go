@@ -7,7 +7,7 @@ import (
 
 type UserOrder struct {
 	ID         int       `gorm:"primaryKey;" json:"id"`
-	UserID     int       `gorm:"not null;" json:"user_id"`
+	UserID     int       `gorm:"not null;index:ix_user_order_id;" json:"user_id"`
 	TotalPrice float32   `gorm:"not null;" json:"total_price"`
 	CreatedAt  time.Time `gorm:"not null;" json:"created_at"`
 	db         *gorm.DB
@@ -31,7 +31,7 @@ func (o *UserOrder) GetOrderByID(orderID int) error {
 
 type UserOrderItem struct {
 	ID          int     `gorm:"primaryKey;" json:"id"`
-	UserOrderID int     `gorm:"not null;" json:"user_order_id"`
+	UserOrderID int     `gorm:"not null;index:ix_user_order_item_order_id;" json:"user_order_id"`
 	ItemPrice   float32 `gorm:"not null;" json:"item_price"`
 	Quantity    int     `gorm:"not null;"`
 }
