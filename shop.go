@@ -45,6 +45,13 @@ func (i *ShopItem) Create(data *ShopItemCreate) error {
 		return err
 	}
 
+	i.ItemName = data.ItemName
+	i.ItemPicture = data.ItemPicture
+	i.ItemPrice = data.ItemPrice
+	i.ItemSalePrice = data.ItemSalePrice
+	i.ItemDescription = data.ItemDescription
+	i.Shippable = data.Shippable
+	i.Quantity = data.Quantity
 	i.CreatedAt = time.Now()
 	i.setUpdatedAt()
 
@@ -67,8 +74,8 @@ func (i *ShopItem) Create(data *ShopItemCreate) error {
 	insertQuery := `INSERT INTO shop_items (item_name, item_picture, item_price, item_sale_price, item_description, 
 		shippable, quantity, stripe_product_api_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	params := []interface{}{data.ItemName, data.ItemPicture, data.ItemPrice, data.ItemSalePrice, data.ItemDescription, data.Shippable,
-		data.Quantity, stripeProduct.ID, i.CreatedAt, i.UpdatedAt}
+	params := []interface{}{i.ItemName, i.ItemPicture, i.ItemPrice, i.ItemSalePrice, i.ItemDescription, i.Shippable,
+		i.Quantity, stripeProduct.ID, i.CreatedAt, i.UpdatedAt}
 
 	if err := i.db.Debug().Exec(insertQuery, params...).Error; err != nil {
 		log.Printf("error while saving to db: %v\n", err)
