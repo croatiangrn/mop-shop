@@ -105,18 +105,13 @@ func (u *ShopItemUpdate) updateStripeProduct(stripeProductApiID, name string, de
 	return product.Update(stripeProductApiID, params)
 }
 
-func (u *ShopItemUpdate) updateStripeProductPrice(stripeProductPriceApiID string, unitAmount int64) (*stripe.Price, error) {
+func (u *ShopItemUpdate) updateStripeProductPrice(stripeProductApiID string, unitAmount int64) (*stripe.Price, error) {
 	params := &stripe.PriceParams{
-		UnitAmountDecimal: stripe.Float64(float64(unitAmount)),
-		Recurring:         &stripe.PriceRecurringParams{},
-		TransformQuantity: &stripe.PriceTransformQuantityParams{},
-		Tiers:             []*stripe.PriceTierParams{},
-		TiersMode:         stripe.String(""),
-		Nickname:          stripe.String(""),
-		Currency:          stripe.String(string(stripe.CurrencyEUR)),
-		BillingScheme:     stripe.String(string(stripe.PriceBillingSchemePerUnit)),
-		TaxBehavior:       stripe.String(string(stripe.PriceTaxBehaviorUnspecified)),
+		Product:    stripe.String(stripeProductApiID),
+		Currency:   stripe.String(string(stripe.CurrencyEUR)),
+		UnitAmount: stripe.Int64(unitAmount),
 	}
 
-	return price.Update(stripeProductPriceApiID, params)
+	// Actually, new price is set instead of updating because StripeSDK doesn't support updating unit_amount
+	return price.New(params)
 }
