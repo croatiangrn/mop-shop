@@ -128,7 +128,7 @@ func (i *ShopItem) Update(data *ShopItemUpdate) error {
 		itemPrice = *data.ItemSalePrice
 	}
 
-	if _, err := data.updateStripeProductPrice(i.StripePriceApiID, itemPrice); err != nil {
+	if _, err := data.updateStripeProductPrice(i.StripeProductApiID, itemPrice); err != nil {
 		log.Printf("error occurred while updating stripe product price: %v", err)
 		return err
 	}
