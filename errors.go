@@ -9,4 +9,5 @@ var (
 	ErrShopItemSalePriceNegative = errors.New("sale_price_cannot_be_negative")
 	ErrInternal                  = errors.New("internal_error")
 	ErrShopItemCreateBlank       = errors.New("shop_item_create_data_cannot_be_blank")
+	ErrShopItemUpdateBlank       = errors.New("shop_item_update_data_cannot_be_blank")
 )

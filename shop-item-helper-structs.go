@@ -4,6 +4,7 @@ import (
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/price"
 	"github.com/stripe/stripe-go/v72/product"
+	"gorm.io/gorm"
 )
 
 type ShopItemCreate struct {
@@ -57,4 +58,57 @@ func (c *ShopItemCreate) Validate() error {
 	}
 
 	return nil
+}
+
+type ShopItemUpdate struct {
+	ItemName        string  `json:"item_name"`
+	ItemPicture     *string `json:"item_picture"`
+	ItemPrice       int64   `json:"item_price"`
+	ItemSalePrice   *int64  `json:"item_sale_price"`
+	ItemDescription *string `json:"item_description"`
+	Shippable       bool    `json:"shippable"`
+	Quantity        int     `json:"quantity"`
+	stripeProductID string
+	db              *gorm.DB
+}
+
+func NewShopItemUpdate(db *gorm.DB, stripeProductID string) *ShopItemUpdate {
+	return &ShopItemUpdate{db: db, stripeProductID: stripeProductID}
+}
+
+func (u *ShopItemUpdate) Validate() error {
+	if len(u.ItemName) == 0 {
+		return ErrItemNameBlank
+	}
+
+	if u.ItemPrice < 0 {
+		return ErrShopItemPriceNegative
+	}
+
+	if u.ItemSalePrice != nil && *u.ItemSalePrice < 0 {
+		return ErrShopItemSalePriceNegative
+	}
+
+	if u.Quantity < 0 {
+		return ErrShopItemQuantityNegative
+	}
+
+	return nil
+}
+
+func (u *ShopItemUpdate) updateStripeProduct(stripeProductApiID, name string, description *string) (*stripe.Product, error) {
+	params := &stripe.ProductParams{
+		Name:        stripe.String(name),
+		Description: description,
+	}
+
+	return product.Update(stripeProductApiID, params)
+}
+
+func (u *ShopItemUpdate) updateStripeProductPrice(stripeProductPriceApiID string, unitAmount int64) (*stripe.Price, error) {
+	params := &stripe.PriceParams{
+		UnitAmount: stripe.Int64(unitAmount),
+	}
+
+	return price.Update(stripeProductPriceApiID, params)
 }
