@@ -23,12 +23,12 @@ func (c *CreateUserOrder) Validate() error {
 	}
 
 	for i := range c.Items {
-		if c.Items[i].ItemID == 0 {
+		if c.Items[i].ItemID <= 0 {
 			return ErrInvalidItemID
 		}
 
 		if c.Items[i].Quantity <= 0 {
-			return ErrItemQuantityLessOrEqualThanZero
+			return ErrInvalidItemQuantity
 		}
 	}
 
