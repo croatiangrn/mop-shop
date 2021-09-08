@@ -21,7 +21,8 @@ func NewUserOrder(db *gorm.DB) *UserOrder {
 	return &UserOrder{db: db}
 }
 
-func (o *UserOrder) Create(items []UserOrder) error {
+func (o *UserOrder) Create(data *CreateUserOrder) error {
+
 	return nil
 }
 
