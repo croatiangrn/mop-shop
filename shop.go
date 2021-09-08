@@ -44,6 +44,20 @@ func (i *ShopItem) setUpdatedAt() {
 	i.UpdatedAt = time.Now()
 }
 
+func (i *ShopItem) FindOneByID(shopItemID int) error {
+	query := `SELECT * FROM shop_items WHERE id = ? AND deleted_at IS NULL`
+
+	if err := i.db.Debug().Raw(query, shopItemID).Take(&i).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		return ErrInternal
+	}
+
+	return nil
+}
+
 func (i *ShopItem) Create(data *ShopItemCreate) error {
 	if data == nil {
 		return ErrShopItemCreateBlank
