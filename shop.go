@@ -91,6 +91,7 @@ func (i *ShopItem) Create(data *ShopItemCreate) error {
 
 	i.ID = lastID
 	i.StripeProductApiID = stripeProduct.ID
+	i.StripePriceApiID = productPrice.ID
 	return nil
 }
 
