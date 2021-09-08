@@ -108,6 +108,14 @@ func (u *ShopItemUpdate) updateStripeProduct(stripeProductApiID, name string, de
 func (u *ShopItemUpdate) updateStripeProductPrice(stripeProductPriceApiID string, unitAmount int64) (*stripe.Price, error) {
 	params := &stripe.PriceParams{
 		UnitAmountDecimal: stripe.Float64(float64(unitAmount)),
+		Recurring:         nil,
+		TransformQuantity: nil,
+		Tiers:             nil,
+		TiersMode:         nil,
+		Nickname:          nil,
+		Currency:          stripe.String(string(stripe.CurrencyEUR)),
+		BillingScheme:     stripe.String(string(stripe.PriceBillingSchemePerUnit)),
+		TaxBehavior:       stripe.String(string(stripe.PriceTaxBehaviorUnspecified)),
 	}
 
 	return price.Update(stripeProductPriceApiID, params)
