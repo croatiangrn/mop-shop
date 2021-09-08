@@ -2,4 +2,7 @@ module github.com/croatiangrn/mop-shop
 
 go 1.16
 
-require gorm.io/gorm v1.21.14 // indirect
+require (
+	github.com/stripe/stripe-go/v72 v72.64.1 // indirect
+	gorm.io/gorm v1.21.14 // indirect
+)
