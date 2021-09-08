@@ -179,6 +179,8 @@ func (i *ShopItem) Delete(shopItemID int) error {
 		return ErrInternal
 	}
 
+	// TODO: Delete user-created prices if they exist first and
+	//  then delete the product because otherwise this won't work!
 	if _, err := product.Del(i.StripeProductApiID, nil); err != nil {
 		return err
 	}
