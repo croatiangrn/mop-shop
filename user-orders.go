@@ -22,6 +22,17 @@ func NewUserOrder(db *gorm.DB) *UserOrder {
 }
 
 func (o *UserOrder) Create(data *CreateUserOrder) error {
+	if data == nil {
+		return ErrOrderDataBlank
+	}
+
+	if err := data.Validate(); err != nil {
+		return err
+	}
+
+	// TODO: Fetch price IDs from provided data.Items
+
+	// TODO: Insert DB queries here and create checkout!
 
 	return nil
 }

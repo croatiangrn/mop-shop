@@ -36,6 +36,7 @@ func (c *CreateUserOrder) Validate() error {
 }
 
 type CreateUserOrderItem struct {
-	ItemID   int `json:"item_id"`
-	Quantity int `json:"quantity"`
+	ItemID        int `json:"item_id"`
+	Quantity      int `json:"quantity"`
+	stripePriceID string
 }
