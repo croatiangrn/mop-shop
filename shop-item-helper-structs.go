@@ -107,7 +107,7 @@ func (u *ShopItemUpdate) updateStripeProduct(stripeProductApiID, name string, de
 
 func (u *ShopItemUpdate) updateStripeProductPrice(stripeProductPriceApiID string, unitAmount int64) (*stripe.Price, error) {
 	params := &stripe.PriceParams{
-		UnitAmount: stripe.Int64(unitAmount),
+		UnitAmountDecimal: stripe.Float64(float64(unitAmount)),
 	}
 
 	return price.Update(stripeProductPriceApiID, params)
