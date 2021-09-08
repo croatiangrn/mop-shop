@@ -1,7 +1,9 @@
 package mop_shop
 
 import (
+	"errors"
 	"github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/product"
 	"gorm.io/gorm"
 	"log"
 	"time"
@@ -147,10 +149,25 @@ func (i *ShopItem) Update(data *ShopItemUpdate) error {
 	return nil
 }
 
-func (i *ShopItem) Delete() error {
+func (i *ShopItem) Delete(shopItemID int) error {
 	currentTime := time.Now()
 	i.setUpdatedAt()
 	i.DeletedAt = &currentTime
+
+	softDeleteQuery := `UPDATE shop_items SET deleted_at = NOW() WHERE id = ?`
+
+	if err := i.db.Debug().Exec(softDeleteQuery, shopItemID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		log.Printf("error while soft-deleting shop item: %v\n", err)
+		return ErrInternal
+	}
+
+	if _, err := product.Del(i.StripeProductApiID, nil); err != nil {
+		return err
+	}
 
 	return nil
 }

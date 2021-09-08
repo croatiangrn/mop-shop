@@ -112,6 +112,7 @@ func (u *ShopItemUpdate) updateStripeProductPrice(stripeProductApiID string, uni
 		UnitAmount: stripe.Int64(unitAmount),
 	}
 
-	// Actually, new price is set instead of updating because StripeSDK doesn't support updating unit_amount
+	// This will create new price instead of updating unit amount, if we want to update unit amount then it has to be
+	// done using session authentication (Stripe API)
 	return price.New(params)
 }
