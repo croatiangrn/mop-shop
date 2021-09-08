@@ -48,15 +48,15 @@ func (i *ShopItem) Create(data *ShopItemCreate) error {
 	i.CreatedAt = time.Now()
 	i.setUpdatedAt()
 
-	stripeProduct, err := data.createStripeProduct(i.ItemName, i.ItemDescription)
+	stripeProduct, err := data.createStripeProduct(data.ItemName, data.ItemDescription)
 	if err != nil {
 		log.Printf("error occurred while creating stripe product: %v", err)
 		return err
 	}
 
-	itemPrice := i.ItemPrice
-	if i.ItemSalePrice != nil {
-		itemPrice = *i.ItemSalePrice
+	itemPrice := data.ItemPrice
+	if data.ItemSalePrice != nil {
+		itemPrice = *data.ItemSalePrice
 	}
 
 	if _, err := data.createStripeProductPrice(stripeProduct, itemPrice); err != nil {
@@ -67,8 +67,8 @@ func (i *ShopItem) Create(data *ShopItemCreate) error {
 	insertQuery := `INSERT INTO shop_items (item_name, item_picture, item_price, item_sale_price, item_description, 
 		shippable, quantity, stripe_product_api_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	params := []interface{}{i.ItemName, i.ItemPicture, i.ItemPrice, i.ItemSalePrice, i.ItemDescription, i.Shippable,
-		i.Quantity, stripeProduct.ID, i.CreatedAt, i.UpdatedAt}
+	params := []interface{}{data.ItemName, data.ItemPicture, data.ItemPrice, data.ItemSalePrice, data.ItemDescription, data.Shippable,
+		data.Quantity, stripeProduct.ID, i.CreatedAt, i.UpdatedAt}
 
 	if err := i.db.Debug().Exec(insertQuery, params...).Error; err != nil {
 		log.Printf("error while saving to db: %v\n", err)
