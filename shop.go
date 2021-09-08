@@ -33,6 +33,11 @@ func NewShopItem(db *gorm.DB, stripeKey string) *ShopItem {
 	return &ShopItem{db: db}
 }
 
+func NewShopItemForUpdate(db *gorm.DB, stripeKey string, stripeProductApiID, stripePriceApiID string) *ShopItem {
+	stripe.Key = stripeKey
+	return &ShopItem{db: db, StripeProductApiID: stripeProductApiID, StripePriceApiID: stripePriceApiID}
+}
+
 func (i *ShopItem) setUpdatedAt() {
 	i.UpdatedAt = time.Now()
 }
@@ -91,6 +96,7 @@ func (i *ShopItem) Create(data *ShopItemCreate) error {
 
 	i.ID = lastID
 	i.StripeProductApiID = stripeProduct.ID
+	i.StripePriceApiID = productPrice.ID
 	return nil
 }
 
