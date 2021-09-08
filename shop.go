@@ -88,6 +88,7 @@ func (i *ShopItem) Create(data *ShopItemCreate) error {
 	}
 
 	i.ID = lastID
+	i.StripeProductApiID = stripeProduct.ID
 	return nil
 }
 
