@@ -25,6 +25,7 @@ func (c *ShopItemCreate) createStripeProduct(name string, description *string) (
 	params := &stripe.ProductParams{
 		Name:        stripe.String(name),
 		Description: description,
+		Active:      stripe.Bool(true),
 	}
 
 	return product.New(params)
