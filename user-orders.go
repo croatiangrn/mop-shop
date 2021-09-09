@@ -1,6 +1,8 @@
 package mop_shop
 
 import (
+	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"gorm.io/gorm"
 	"log"
 	"strings"
@@ -38,6 +40,8 @@ func findItemIDsWithStripePriceID(itemIDs []int, db *gorm.DB) (map[int]itemIDWit
 		log.Printf("error while getting findItemIDsWithStripePriceID: %v\n", err)
 		return nil, ErrInternal
 	}
+
+	spew.Dump(data)
 
 	mapToReturn := make(map[int]itemIDWithStripePriceID, len(data))
 
@@ -84,6 +88,7 @@ func (o *UserOrder) Create(data *CreateUserOrder) error {
 
 			data.Items[i].itemPrice = price
 			orderTotalPriceAmount += price
+			fmt.Println("Total amount is now: ", orderTotalPriceAmount)
 		}
 	}
 
