@@ -69,6 +69,10 @@ func (o *UserOrder) Create(data *CreateUserOrder) error {
 		return err
 	}
 
+	if len(itemIDsWithStripePriceIDs) != len(data.Items) {
+		return ErrSomeItemsDoNotExist
+	}
+
 	orderTotalPriceAmount := float32(0)
 
 	for i := range data.Items {
