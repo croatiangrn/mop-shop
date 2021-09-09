@@ -106,11 +106,13 @@ func (u *ShopItemUpdate) updateStripeProduct(stripeProductApiID, name string, de
 	return product.Update(stripeProductApiID, params)
 }
 
-func (u *ShopItemUpdate) updateStripeProductPrice(stripeProductApiID string, unitAmount int64) (*stripe.Price, error) {
+func (u *ShopItemUpdate) updateStripeProductPrice(productApiID, priceLookupKey string, unitAmount int64) (*stripe.Price, error) {
 	params := &stripe.PriceParams{
-		Product:    stripe.String(stripeProductApiID),
-		Currency:   stripe.String(string(stripe.CurrencyEUR)),
-		UnitAmount: stripe.Int64(unitAmount),
+		Product:           stripe.String(productApiID),
+		Currency:          stripe.String(string(stripe.CurrencyEUR)),
+		UnitAmount:        stripe.Int64(unitAmount),
+		LookupKey:         stripe.String(priceLookupKey),
+		TransferLookupKey: stripe.Bool(true),
 	}
 
 	// This will create new price instead of updating unit amount, if we want to update unit amount then it has to be

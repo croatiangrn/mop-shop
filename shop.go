@@ -36,9 +36,9 @@ func NewShopItem(db *gorm.DB, stripeKey string) *ShopItem {
 	return &ShopItem{db: db}
 }
 
-func NewShopItemForUpdate(db *gorm.DB, stripeKey string, stripeProductApiID, uniqueStripePriceLookupKey string) *ShopItem {
+func NewShopItemForUpdate(db *gorm.DB, shopItemID int, stripeKey string, stripeProductApiID, uniqueStripePriceLookupKey string) *ShopItem {
 	stripe.Key = stripeKey
-	return &ShopItem{db: db, StripeProductApiID: stripeProductApiID, UniqueStripePriceLookupKey: uniqueStripePriceLookupKey}
+	return &ShopItem{ID: shopItemID, db: db, StripeProductApiID: stripeProductApiID, UniqueStripePriceLookupKey: uniqueStripePriceLookupKey}
 }
 
 func (i *ShopItem) setUpdatedAt() {
@@ -145,7 +145,7 @@ func (i *ShopItem) Update(data *ShopItemUpdate) error {
 		itemPrice = *data.ItemSalePrice
 	}
 
-	if _, err := data.updateStripeProductPrice(i.StripeProductApiID, itemPrice); err != nil {
+	if _, err := data.updateStripeProductPrice(i.StripeProductApiID, i.UniqueStripePriceLookupKey, itemPrice); err != nil {
 		log.Printf("error occurred while updating stripe product price: %v", err)
 		return err
 	}
