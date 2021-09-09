@@ -26,10 +26,10 @@ func NewUserOrder(db *gorm.DB) *UserOrder {
 }
 
 type itemIDWithStripePriceID struct {
-	itemID                     int `gorm:"column:item_id"`
-	uniqueStripePriceLookupKey string
-	itemPrice                  float32
-	itemSalePrice              *float32
+	ItemID                     int
+	UniqueStripePriceLookupKey string
+	ItemPrice                  float32
+	ItemSalePrice              *float32
 }
 
 func findItemIDsWithStripePriceID(itemIDs []int, db *gorm.DB) (map[int]itemIDWithStripePriceID, error) {
