@@ -83,6 +83,32 @@ func (o *UserOrder) CreateEmptyOrder(userID int, clientReferenceID string) error
 	return nil
 }
 
+func (o *UserOrder) UpdateEmptyOrderAfterCheckout(totalPrice float32, products map[int]ItemWithStripeInfo) error {
+	if o.ID == 0 {
+		return ErrInvalidUserOrderID
+	}
+
+	o.TotalPrice = totalPrice
+
+	tx := o.db.Debug().Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// TODO: Update updated_at, is_completed, total_price for UserOrder!
+
+	// TODO: Insert user_order_items here!
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("error while comitting transaction in userOrder.UpdateEmptyOrderAfterCheckout: %v\n", err)
+		return ErrCommittingTransaction
+	}
+
+	return nil
+}
+
 func (o *UserOrder) FindOneByClientReferenceID(clientReferenceID string, orderCompleted bool) error {
 	query := `SELECT * FROM user_orders WHERE stripe_client_reference_id = ? AND is_completed = ?`
 

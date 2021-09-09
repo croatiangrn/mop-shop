@@ -16,4 +16,6 @@ var (
 	ErrInvalidItemQuantity       = errors.New("item_quantity_cannot_be_less_or_equal_than_zero")
 	ErrOrderDataBlank            = errors.New("order_data_cannot_be_blank")
 	ErrSomeItemsDoNotExist       = errors.New("some_items_do_not_exist")
+	ErrInvalidUserOrderID        = errors.New("user_order_id_cannot_be_zero")
+	ErrCommittingTransaction     = errors.New("could_not_commit_db_transaction")
 )
