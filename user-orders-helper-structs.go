@@ -13,7 +13,7 @@ func NewCreateUserOrder() *CreateUserOrder {
 	return &CreateUserOrder{}
 }
 
-func (c *CreateUserOrder) Validate() error {
+func (c *CreateUserOrder) validate() error {
 	if c.UserID == 0 {
 		return ErrInvalidUserID
 	}
@@ -36,7 +36,7 @@ func (c *CreateUserOrder) Validate() error {
 }
 
 type CreateUserOrderItem struct {
-	ItemID        int `json:"item_id"`
-	Quantity      int `json:"quantity"`
-	stripePriceID string
+	ItemID    int `json:"item_id"`
+	Quantity  int `json:"quantity"`
+	itemPrice float32
 }
