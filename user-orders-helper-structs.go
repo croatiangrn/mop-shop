@@ -3,18 +3,18 @@ package mop_shop
 import "time"
 
 type CreateUserOrder struct {
-	UserID     int                   `json:"user_id"`
+	userID     int
 	Items      []CreateUserOrderItem `json:"items"`
 	totalPrice float32
 	createdAt  time.Time
 }
 
-func NewCreateUserOrder() *CreateUserOrder {
-	return &CreateUserOrder{}
+func NewCreateUserOrder(userID int) *CreateUserOrder {
+	return &CreateUserOrder{userID: userID}
 }
 
 func (c *CreateUserOrder) validate() error {
-	if c.UserID == 0 {
+	if c.userID == 0 {
 		return ErrInvalidUserID
 	}
 
