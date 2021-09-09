@@ -134,11 +134,20 @@ func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID, clientReferenceID s
 		}
 	}()
 
-	query := `UPDATE user_orders SET updated_at = ?, is_completed = ?, total_price = ? WHERE stripe_session_id = ?`
-	if err := tx.Debug().Exec(query, time.Now(), true, totalPrice, clientReferenceID).Error; err != nil {
+	query := `UPDATE user_orders SET updated_at = ?, is_completed = ?, total_price = ? WHERE stripe_client_reference_id = ?`
+
+	orderQuery := tx.Debug().Exec(query, time.Now(), true, totalPrice, clientReferenceID)
+
+	if err := orderQuery.Error; err != nil {
 		tx.Rollback()
 		log.Printf("error while updating user order: %v\n", err)
 		return ErrInternal
+	}
+
+	if orderQuery.RowsAffected == 0 {
+		tx.Rollback()
+		log.Printf("user order with client reference id %q not found\n", clientReferenceID)
+		return gorm.ErrRecordNotFound
 	}
 
 	var orderItemsQuerySB strings.Builder
@@ -160,16 +169,10 @@ func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID, clientReferenceID s
 		counter++
 	}
 
-	orderItemsQ := tx.Debug().Exec(orderItemsQuerySB.String(), orderItemsQueryParams...)
-	if err := orderItemsQ.Error; err != nil {
+	if err := tx.Debug().Exec(orderItemsQuerySB.String(), orderItemsQueryParams...).Error; err != nil {
 		tx.Rollback()
 		log.Printf("error while inserting user order items: %v\n", err)
 		return ErrInternal
-	}
-
-	if orderItemsQ.RowsAffected == 0 {
-		log.Printf("user order with client reference id %q not found\n", clientReferenceID)
-		return gorm.ErrRecordNotFound
 	}
 
 	if err := tx.Commit().Error; err != nil {
