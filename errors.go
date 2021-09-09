@@ -15,4 +15,5 @@ var (
 	ErrInvalidItemID             = errors.New("item_id_cannot_be_less_or_equal_than_zero")
 	ErrInvalidItemQuantity       = errors.New("item_quantity_cannot_be_less_or_equal_than_zero")
 	ErrOrderDataBlank            = errors.New("order_data_cannot_be_blank")
+	ErrSomeItemsDoNotExist       = errors.New("some_items_do_not_exist")
 )
