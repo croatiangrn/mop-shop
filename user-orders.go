@@ -115,12 +115,17 @@ func (o *UserOrder) getProductsFromOrderBySessionID(sessionID string) (map[strin
 	return products, nil
 }
 
-func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID string, totalPrice float32, products map[string]ItemWithStripeInfo) error {
+func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID string, totalPrice float32) error {
 	if o.ID == 0 {
 		return ErrInvalidUserOrderID
 	}
 
 	o.TotalPrice = totalPrice
+
+	products, err := o.getProductsFromOrderBySessionID(sessionID)
+	if err != nil {
+		return err
+	}
 
 	tx := o.db.Debug().Begin()
 	defer func() {
