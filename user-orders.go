@@ -83,10 +83,10 @@ func (o *UserOrder) CreateEmptyOrder(userID int, clientReferenceID string) error
 	return nil
 }
 
-func (o *UserOrder) FindOneByClientReferenceID(clientReferenceID string) error {
-	query := `SELECT * FROM user_orders WHERE stripe_client_reference_id = ?`
+func (o *UserOrder) FindOneByClientReferenceID(clientReferenceID string, orderCompleted bool) error {
+	query := `SELECT * FROM user_orders WHERE stripe_client_reference_id = ? AND is_completed = ?`
 
-	if err := o.db.Debug().Raw(query, clientReferenceID).Take(o).Error; err != nil {
+	if err := o.db.Debug().Raw(query, clientReferenceID, orderCompleted).Take(o).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
