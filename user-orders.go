@@ -20,7 +20,11 @@ type UserOrder struct {
 	db                      *gorm.DB
 }
 
-func (o *UserOrder) OrderItems() map[int]ItemWithStripeInfo {
+func (i *UserOrderItem) TableName() string {
+	return "user_order_items"
+}
+
+func (o *UserOrder) GetOrderItems() map[int]ItemWithStripeInfo {
 	return o.orderItems
 }
 
@@ -152,8 +156,4 @@ type UserOrderItem struct {
 	UserOrderID int     `gorm:"not null;index:ix_user_order_item_order_id;" json:"user_order_id"`
 	ItemPrice   float32 `gorm:"not null;" json:"item_price"`
 	Quantity    int     `gorm:"not null;"`
-}
-
-func (i *UserOrderItem) TableName() string {
-	return "user_order_items"
 }
