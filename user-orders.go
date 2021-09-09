@@ -1,7 +1,6 @@
 package mop_shop
 
 import (
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"log"
 	"time"
@@ -68,10 +67,10 @@ func findItemsWithStripeInfo(itemIDs []int, db *gorm.DB) (map[int]ItemWithStripe
 	return mapToReturn, nil
 }
 
-func (o *UserOrder) CreateEmptyOrder(userID int) error {
+func (o *UserOrder) CreateEmptyOrder(userID int, clientReferenceID string) error {
 	query := `INSERT INTO user_orders (user_id, total_price, created_at, stripe_client_reference_id) VALUES (?, ?, ?, ?)`
 
-	if err := o.db.Debug().Exec(query, userID, 0, time.Now(), uuid.New().String()).Error; err != nil {
+	if err := o.db.Debug().Exec(query, userID, 0, time.Now(), clientReferenceID).Error; err != nil {
 		log.Printf("error while creating empty order: %v\n", err)
 		return ErrInternal
 	}
