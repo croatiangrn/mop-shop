@@ -49,6 +49,8 @@ func findItemIDsWithStripePriceID(itemIDs []int, db *gorm.DB) (map[int]itemIDWit
 }
 
 func (o *UserOrder) Create(data *CreateUserOrder) error {
+	o.UserID = data.userID
+
 	if data == nil {
 		return ErrOrderDataBlank
 	}
