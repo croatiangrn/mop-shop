@@ -30,11 +30,12 @@ func (c *ShopItemCreate) createStripeProduct(name string, description *string) (
 	return product.New(params)
 }
 
-func (c *ShopItemCreate) createStripeProductPrice(product *stripe.Product, unitAmount int64) (*stripe.Price, error) {
+func (c *ShopItemCreate) createStripeProductPrice(product *stripe.Product, unitAmount int64, lookupKey string) (*stripe.Price, error) {
 	priceParams := &stripe.PriceParams{
 		Product:    stripe.String(product.ID),
 		Currency:   stripe.String(string(stripe.CurrencyEUR)),
 		UnitAmount: stripe.Int64(unitAmount),
+		LookupKey:  stripe.String(lookupKey),
 	}
 
 	return price.New(priceParams)
