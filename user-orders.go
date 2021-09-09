@@ -32,7 +32,7 @@ type itemIDWithStripePriceID struct {
 
 func findItemIDsWithStripePriceID(itemIDs []int, db *gorm.DB) (map[int]itemIDWithStripePriceID, error) {
 	var data []itemIDWithStripePriceID
-	query := `SELECT id AS item_id, stripe_price_api_id, item_price, item_sale_price FROM shop_items WHERE id IN (?)`
+	query := `SELECT id AS item_id, unique_stripe_price_lookup_key, item_price, item_sale_price FROM shop_items WHERE id IN (?)`
 
 	if err := db.Debug().Raw(query, itemIDs).Scan(&data).Error; err != nil {
 		log.Printf("error while getting findItemIDsWithStripePriceID: %v\n", err)
