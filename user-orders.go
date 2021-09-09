@@ -115,7 +115,7 @@ func (o *UserOrder) getProductsFromOrderBySessionID(sessionID string) (map[strin
 	return products, nil
 }
 
-func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID string, totalPrice float32) error {
+func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID, clientReferenceID string, totalPrice float32) error {
 	if o.ID == 0 {
 		return ErrInvalidUserOrderID
 	}
@@ -135,7 +135,7 @@ func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID string, totalPrice f
 	}()
 
 	query := `UPDATE user_orders SET updated_at = ?, is_completed = ?, total_price = ? WHERE stripe_session_id = ?`
-	if err := tx.Debug().Exec(query, time.Now(), true, totalPrice, sessionID).Error; err != nil {
+	if err := tx.Debug().Exec(query, time.Now(), true, totalPrice, clientReferenceID).Error; err != nil {
 		tx.Rollback()
 		log.Printf("error while updating user order: %v\n", err)
 		return ErrInternal
@@ -156,14 +156,20 @@ func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID string, totalPrice f
 			orderItemsQuerySB.WriteString(`(?, ?, ?, ?), `)
 		}
 
-		orderItemsQueryParams = append(orderItemsQueryParams, o.ID, products[i].Price, products[i].ItemID, products[i].Quantity)
+		orderItemsQueryParams = append(orderItemsQueryParams, o.ID, products[i].ItemID, products[i].Price, products[i].Quantity)
 		counter++
 	}
 
-	if err := tx.Debug().Exec(orderItemsQuerySB.String(), orderItemsQueryParams...).Error; err != nil {
+	orderItemsQ := tx.Debug().Exec(orderItemsQuerySB.String(), orderItemsQueryParams...)
+	if err := orderItemsQ.Error; err != nil {
 		tx.Rollback()
 		log.Printf("error while inserting user order items: %v\n", err)
 		return ErrInternal
+	}
+
+	if orderItemsQ.RowsAffected == 0 {
+		log.Printf("user order with client reference id %q not found\n", clientReferenceID)
+		return gorm.ErrRecordNotFound
 	}
 
 	if err := tx.Commit().Error; err != nil {
