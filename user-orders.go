@@ -22,12 +22,12 @@ type UserOrder struct {
 	db                      *gorm.DB
 }
 
-func (o *UserOrder) GetOrderItems() map[int]ItemWithStripeInfo {
-	return o.orderItems
-}
-
 func (o *UserOrder) TableName() string {
 	return "user_orders"
+}
+
+func (o *UserOrder) GetOrderItems() map[int]ItemWithStripeInfo {
+	return o.orderItems
 }
 
 func NewUserOrder(db *gorm.DB) *UserOrder {
@@ -261,4 +261,23 @@ type UserOrderItem struct {
 
 func (i *UserOrderItem) TableName() string {
 	return "user_order_items"
+}
+
+// UserOrderFrontResponse struct should be used for user requests such as getting all user orders, single user order
+type UserOrderFrontResponse struct {
+	ID          int       `gorm:"primaryKey;" json:"id"`
+	TotalPrice  float32   `gorm:"not null;" json:"total_price"`
+	CreatedAt   time.Time `gorm:"not null;" json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	IsCompleted bool      `gorm:"default:false;" json:"-"`
+	// Items will not be shown in JSON response if it's nil!
+	Items []UserOrderItemFrontResponse `json:"items,omitempty"`
+	db    *gorm.DB
+}
+
+type UserOrderItemFrontResponse struct {
+	ShopItemID   int     `json:"shop_item_id"`
+	ShopItemName string  `json:"shop_item_name"`
+	ItemPrice    float32 `json:"item_price"`
+	Quantity     int     `json:"quantity"`
 }
