@@ -1,7 +1,6 @@
 package mop_shop
 
 import (
-	"github.com/davecgh/go-spew/spew"
 	"gorm.io/gorm"
 	"log"
 	"time"
@@ -13,7 +12,12 @@ type UserOrder struct {
 	TotalPrice      float32   `gorm:"not null;" json:"total_price"`
 	StripeSessionID *string   `gorm:"type:varchar(255);" json:"stripe_session_id"`
 	CreatedAt       time.Time `gorm:"not null;" json:"created_at"`
+	orderItems      map[int]ItemWithStripeInfo
 	db              *gorm.DB
+}
+
+func (o *UserOrder) OrderItems() map[int]ItemWithStripeInfo {
+	return o.orderItems
 }
 
 func (o *UserOrder) TableName() string {
@@ -24,27 +28,34 @@ func NewUserOrder(db *gorm.DB) *UserOrder {
 	return &UserOrder{db: db}
 }
 
-type itemIDWithStripePriceID struct {
+type ItemWithStripeInfo struct {
 	ItemID                     int
 	UniqueStripePriceLookupKey string
 	ItemPrice                  float32
 	ItemSalePrice              *float32
+	StripeProductApiID         string
+	// Price is a virtual field and is being used as unit_amount when creating stripe checkout session
+	Price float32
 }
 
-func findItemIDsWithStripePriceID(itemIDs []int, db *gorm.DB) (map[int]itemIDWithStripePriceID, error) {
-	var data []itemIDWithStripePriceID
-	query := `SELECT id AS item_id, unique_stripe_price_lookup_key, item_price, item_sale_price FROM shop_items WHERE id IN (?)`
+func findItemsWithStripeInfo(itemIDs []int, db *gorm.DB) (map[int]ItemWithStripeInfo, error) {
+	var data []ItemWithStripeInfo
+	query := `SELECT id AS item_id, stripe_product_api_id, unique_stripe_price_lookup_key, item_price, item_sale_price FROM shop_items WHERE id IN (?)`
 
 	if err := db.Debug().Raw(query, itemIDs).Scan(&data).Error; err != nil {
-		log.Printf("error while getting findItemIDsWithStripePriceID: %v\n", err)
+		log.Printf("error while getting findItemsWithStripeInfo: %v\n", err)
 		return nil, ErrInternal
 	}
 
-	spew.Dump(data)
-
-	mapToReturn := make(map[int]itemIDWithStripePriceID, len(data))
+	mapToReturn := make(map[int]ItemWithStripeInfo, len(data))
 
 	for i := range data {
+		data[i].Price = data[i].ItemPrice
+
+		if data[i].ItemSalePrice != nil {
+			data[i].Price = *data[i].ItemSalePrice
+		}
+
 		mapToReturn[data[i].ItemID] = data[i]
 	}
 
@@ -67,19 +78,19 @@ func (o *UserOrder) Create(data *CreateUserOrder) error {
 		itemIDs = append(itemIDs, data.Items[i].ItemID)
 	}
 
-	itemIDsWithStripePriceIDs, err := findItemIDsWithStripePriceID(itemIDs, o.db)
+	itemsWithStripeInfo, err := findItemsWithStripeInfo(itemIDs, o.db)
 	if err != nil {
 		return err
 	}
 
-	if len(itemIDsWithStripePriceIDs) != len(data.Items) {
+	if len(itemsWithStripeInfo) != len(data.Items) {
 		return ErrSomeItemsDoNotExist
 	}
 
 	orderTotalPriceAmount := float32(0)
 
 	for i := range data.Items {
-		if obj, ok := itemIDsWithStripePriceIDs[data.Items[i].ItemID]; ok {
+		if obj, ok := itemsWithStripeInfo[data.Items[i].ItemID]; ok {
 			price := obj.ItemPrice
 			if obj.ItemSalePrice != nil {
 				price = *obj.ItemSalePrice
@@ -91,6 +102,8 @@ func (o *UserOrder) Create(data *CreateUserOrder) error {
 	}
 
 	o.TotalPrice = orderTotalPriceAmount
+	o.orderItems = itemsWithStripeInfo
+
 	return nil
 }
 
