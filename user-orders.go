@@ -78,7 +78,7 @@ func (o *UserOrder) CreateEmptyOrder(userID int, clientReferenceID string) error
 	return nil
 }
 
-func (o *UserOrder) Create(data *CreateUserOrder) error {
+func (o *UserOrder) Prepare(data *CreateUserOrder) error {
 	o.UserID = data.userID
 
 	if data == nil {
