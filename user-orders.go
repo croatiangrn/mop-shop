@@ -1,20 +1,19 @@
 package mop_shop
 
 import (
-	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"gorm.io/gorm"
 	"log"
-	"strings"
 	"time"
 )
 
 type UserOrder struct {
-	ID         int       `gorm:"primaryKey;" json:"id"`
-	UserID     int       `gorm:"not null;index:ix_user_order_id;" json:"user_id"`
-	TotalPrice float32   `gorm:"not null;" json:"total_price"`
-	CreatedAt  time.Time `gorm:"not null;" json:"created_at"`
-	db         *gorm.DB
+	ID              int       `gorm:"primaryKey;" json:"id"`
+	UserID          int       `gorm:"not null;index:ix_user_order_id;" json:"user_id"`
+	TotalPrice      float32   `gorm:"not null;" json:"total_price"`
+	StripeSessionID *string   `gorm:"type:varchar(255);" json:"stripe_session_id"`
+	CreatedAt       time.Time `gorm:"not null;" json:"created_at"`
+	db              *gorm.DB
 }
 
 func (o *UserOrder) TableName() string {
@@ -88,62 +87,10 @@ func (o *UserOrder) Create(data *CreateUserOrder) error {
 
 			data.Items[i].itemPrice = price
 			orderTotalPriceAmount += price
-			fmt.Println("Total amount is now: ", orderTotalPriceAmount)
 		}
 	}
 
-	tx := o.db.Debug().Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if err := tx.Error; err != nil {
-		return err
-	}
-
-	insertOrderQuery := `INSERT INTO user_orders (user_id, total_price, created_at) VALUES (?, ?, ?)`
-	if err := tx.Debug().Exec(insertOrderQuery, o.UserID, orderTotalPriceAmount, time.Now()).Error; err != nil {
-		tx.Rollback()
-		log.Printf("error while inserting user order: %v\n", err)
-		return ErrInternal
-	}
-
-	orderID, err := getLastInsertedID(tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	var orderItemsQuerySB strings.Builder
-	var orderItemsQueryParams []interface{}
-
-	orderItemsQuery := `INSERT INTO user_order_items (user_order_id, item_price, quantity) VALUES `
-	orderItemsQuerySB.WriteString(orderItemsQuery)
-
-	lastAvailableIndex := len(data.Items) - 1
-	for i := range data.Items {
-		if i == lastAvailableIndex {
-			orderItemsQuerySB.WriteString(`(?, ?, ?) `)
-		} else {
-			orderItemsQuerySB.WriteString(`(?, ?, ?), `)
-		}
-
-		orderItemsQueryParams = append(orderItemsQueryParams, orderID, data.Items[i].itemPrice, data.Items[i].Quantity)
-	}
-
-	if err := tx.Debug().Exec(orderItemsQuerySB.String(), orderItemsQueryParams...).Error; err != nil {
-		tx.Rollback()
-		log.Printf("error while inserting user order items: %v\n", err)
-		return ErrInternal
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		log.Printf("error while committing transaction: %v\n", err)
-		return ErrInternal
-	}
-
+	o.TotalPrice = orderTotalPriceAmount
 	return nil
 }
 
