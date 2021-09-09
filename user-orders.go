@@ -134,7 +134,7 @@ func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID string, totalPrice f
 		}
 	}()
 
-	query := `UPDATE user_orders SET updated_at = ?, is_completed = ?, total_price = ? WHERE session_id = ?`
+	query := `UPDATE user_orders SET updated_at = ?, is_completed = ?, total_price = ? WHERE stripe_session_id = ?`
 	if err := tx.Debug().Exec(query, time.Now(), true, totalPrice, sessionID).Error; err != nil {
 		tx.Rollback()
 		log.Printf("error while updating user order: %v\n", err)
