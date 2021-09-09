@@ -1,19 +1,23 @@
 package mop_shop
 
 import (
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"log"
 	"time"
 )
 
 type UserOrder struct {
-	ID              int       `gorm:"primaryKey;" json:"id"`
-	UserID          int       `gorm:"not null;index:ix_user_order_id;" json:"user_id"`
-	TotalPrice      float32   `gorm:"not null;" json:"total_price"`
-	StripeSessionID *string   `gorm:"type:varchar(255);" json:"stripe_session_id"`
-	CreatedAt       time.Time `gorm:"not null;" json:"created_at"`
-	orderItems      map[int]ItemWithStripeInfo
-	db              *gorm.DB
+	ID                      int       `gorm:"primaryKey;" json:"id"`
+	UserID                  int       `gorm:"not null;index:ix_user_order_id;" json:"user_id"`
+	TotalPrice              float32   `gorm:"not null;" json:"total_price"`
+	StripeSessionID         *string   `gorm:"type:varchar(255);" json:"stripe_session_id"`
+	CreatedAt               time.Time `gorm:"not null;" json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
+	StripeClientReferenceID string    `gorm:"type:varchar(36);" json:"stripe_client_reference_id"`
+	IsCompleted             bool      `gorm:"default:false;" json:"-"`
+	orderItems              map[int]ItemWithStripeInfo
+	db                      *gorm.DB
 }
 
 func (o *UserOrder) OrderItems() map[int]ItemWithStripeInfo {
@@ -64,6 +68,17 @@ func findItemsWithStripeInfo(itemIDs []int, db *gorm.DB) (map[int]ItemWithStripe
 	return mapToReturn, nil
 }
 
+func (o *UserOrder) CreateEmptyOrder(userID int) error {
+	query := `INSERT INTO user_orders (user_id, total_price, created_at, stripe_client_reference_id) VALUES (?, ?, ?, ?)`
+
+	if err := o.db.Debug().Exec(query, userID, 0, time.Now(), uuid.New().String()).Error; err != nil {
+		log.Printf("error while creating empty order: %v\n", err)
+		return ErrInternal
+	}
+
+	return nil
+}
+
 func (o *UserOrder) Create(data *CreateUserOrder) error {
 	o.UserID = data.userID
 
@@ -102,7 +117,7 @@ func (o *UserOrder) Create(data *CreateUserOrder) error {
 
 			obj.Quantity = data.Items[i].Quantity
 			itemsWithStripeInfo[data.Items[i].ItemID] = obj
-			
+
 			orderTotalPriceAmount += price
 		}
 	}
