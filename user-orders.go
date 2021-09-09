@@ -134,9 +134,9 @@ func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID, clientReferenceID s
 		}
 	}()
 
-	query := `UPDATE user_orders SET updated_at = ?, is_completed = ?, total_price = ? WHERE stripe_client_reference_id = ?`
+	query := `UPDATE user_orders SET updated_at = ?, is_completed = ?, total_price = ?, stripe_session_id = ? WHERE stripe_client_reference_id = ?`
 
-	orderQuery := tx.Debug().Exec(query, time.Now(), true, totalPrice, clientReferenceID)
+	orderQuery := tx.Debug().Exec(query, time.Now(), true, totalPrice, sessionID, clientReferenceID)
 
 	if err := orderQuery.Error; err != nil {
 		tx.Rollback()
