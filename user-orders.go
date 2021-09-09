@@ -46,7 +46,7 @@ func findItemIDsWithStripePriceID(itemIDs []int, db *gorm.DB) (map[int]itemIDWit
 	mapToReturn := make(map[int]itemIDWithStripePriceID, len(data))
 
 	for i := range data {
-		mapToReturn[data[i].itemID] = data[i]
+		mapToReturn[data[i].ItemID] = data[i]
 	}
 
 	return mapToReturn, nil
@@ -81,9 +81,9 @@ func (o *UserOrder) Create(data *CreateUserOrder) error {
 
 	for i := range data.Items {
 		if obj, ok := itemIDsWithStripePriceIDs[data.Items[i].ItemID]; ok {
-			price := obj.itemPrice
-			if obj.itemSalePrice != nil {
-				price = *obj.itemSalePrice
+			price := obj.ItemPrice
+			if obj.ItemSalePrice != nil {
+				price = *obj.ItemSalePrice
 			}
 
 			data.Items[i].itemPrice = price
