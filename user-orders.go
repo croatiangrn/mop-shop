@@ -26,7 +26,7 @@ func NewUserOrder(db *gorm.DB) *UserOrder {
 }
 
 type itemIDWithStripePriceID struct {
-	itemID                     int
+	itemID                     int `gorm:"column:item_id"`
 	uniqueStripePriceLookupKey string
 	itemPrice                  float32
 	itemSalePrice              *float32
