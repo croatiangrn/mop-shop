@@ -1,6 +1,7 @@
 package mop_shop
 
 import (
+	"errors"
 	"gorm.io/gorm"
 	"log"
 	"time"
@@ -72,6 +73,21 @@ func (o *UserOrder) CreateEmptyOrder(userID int, clientReferenceID string) error
 
 	if err := o.db.Debug().Exec(query, userID, 0, time.Now(), clientReferenceID).Error; err != nil {
 		log.Printf("error while creating empty order: %v\n", err)
+		return ErrInternal
+	}
+
+	return nil
+}
+
+func (o *UserOrder) FindOneByClientReferenceID(clientReferenceID string) error {
+	query := `SELECT * FROM user_orders WHERE stripe_client_reference_id = ?`
+
+	if err := o.db.Debug().Raw(query, clientReferenceID).Take(o).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		log.Printf("error while getting user order by client reference id: %v\n", err)
 		return ErrInternal
 	}
 
