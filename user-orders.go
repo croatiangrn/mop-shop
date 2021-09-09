@@ -2,6 +2,7 @@ package mop_shop
 
 import (
 	"gorm.io/gorm"
+	"log"
 	"time"
 )
 
@@ -21,6 +22,23 @@ func NewUserOrder(db *gorm.DB) *UserOrder {
 	return &UserOrder{db: db}
 }
 
+type itemIDWithStripePriceID struct {
+	itemID           int
+	stripePriceApiID string
+}
+
+func findItemIDsWithStripePriceID(itemIDs []int, db *gorm.DB) ([]itemIDWithStripePriceID, error) {
+	var data []itemIDWithStripePriceID
+	query := `SELECT id AS item_id, stripe_price_api_id FROM shop_items WHERE id IN (?)`
+
+	if err := db.Debug().Raw(query, itemIDs).Scan(&data).Error; err != nil {
+		log.Printf("error while getting findItemIDsWithStripePriceID: %v\n", err)
+		return nil, ErrInternal
+	}
+
+	return data, nil
+}
+
 func (o *UserOrder) Create(data *CreateUserOrder) error {
 	if data == nil {
 		return ErrOrderDataBlank
@@ -28,6 +46,11 @@ func (o *UserOrder) Create(data *CreateUserOrder) error {
 
 	if err := data.Validate(); err != nil {
 		return err
+	}
+
+	var itemIDs []int
+	for i := range data.Items {
+		itemIDs = append(itemIDs, data.Items[i].ItemID)
 	}
 
 	// TODO: Fetch price IDs from provided data.Items
