@@ -34,8 +34,10 @@ type ItemWithStripeInfo struct {
 	ItemPrice                  float32
 	ItemSalePrice              *float32
 	StripeProductApiID         string
-	// Price is a virtual field and is being used as unit_amount when creating stripe checkout session
+	// Price is a virtual helper field
 	Price float32
+	// Quantity is a virtual field and is being used as quantity when creating stripe.CheckoutSessionLineItemParams
+	Quantity int
 }
 
 func findItemsWithStripeInfo(itemIDs []int, db *gorm.DB) (map[int]ItemWithStripeInfo, error) {
@@ -97,6 +99,10 @@ func (o *UserOrder) Create(data *CreateUserOrder) error {
 			}
 
 			data.Items[i].itemPrice = price
+
+			obj.Quantity = data.Items[i].Quantity
+			itemsWithStripeInfo[data.Items[i].ItemID] = obj
+			
 			orderTotalPriceAmount += price
 		}
 	}
