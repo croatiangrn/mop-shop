@@ -6,6 +6,8 @@ import (
 	"github.com/stripe/stripe-go/v72/checkout/session"
 	"gorm.io/gorm"
 	"log"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -287,7 +289,9 @@ type UserOrderItemFrontResponse struct {
 	Quantity        int     `json:"quantity"`
 }
 
-func GetUserOrders(userID int, db *gorm.DB, currency string) ([]UserOrderFrontResponse, error) {
+func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, currency, currentURL string) ([]UserOrderFrontResponse, *PaginationResponse, error) {
+	paginationParams.normalize()
+
 	query := `SELECT 
 			uo.id, uo.total_price, uo.created_at, uo.updated_at, uo.is_completed, json_arrayagg(
 				json_object(
@@ -303,14 +307,31 @@ func GetUserOrders(userID int, db *gorm.DB, currency string) ([]UserOrderFrontRe
 		INNER JOIN users u ON u.id = uo.user_id AND u.deleted_at IS NULL
 		INNER JOIN user_order_items uoi ON uoi.user_order_id = uo.id
 		INNER JOIN shop_items si ON si.id = uoi.shop_item_id
-		WHERE uo.user_id = ?
-		GROUP BY uo.id
-		ORDER BY uo.id DESC LIMIT 10`
+		WHERE uo.user_id = ? `
+
+	var userOrdersQuery strings.Builder
+	var params []interface{}
+
+	userOrdersQuery.WriteString(query)
+
+	switch {
+	case paginationParams.Before == 0 && paginationParams.After == 0:
+		userOrdersQuery.WriteString(`AND uo.id > ? GROUP BY uo.id ORDER BY uo.id DESC LIMIT ?`)
+		params = append(params, 0)
+	case paginationParams.After > 0:
+		userOrdersQuery.WriteString(`AND uo.id <= ? GROUP BY uo.id ORDER BY uo.id DESC LIMIT ?`)
+		params = append(params, paginationParams.After)
+	case paginationParams.Before > 0:
+		userOrdersQuery.WriteString(`AND uo.id >= ? GROUP BY uo.id ORDER BY uo.id ASC LIMIT ?`)
+		params = append(params, paginationParams.Before)
+	}
+
+	params = append(params, paginationParams.PerPage+1)
 
 	var data []UserOrderFrontResponse
 	if err := db.Debug().Raw(query, userID).Scan(&data).Error; err != nil {
 		log.Printf("error while getting user orders: %v\n", err)
-		return nil, ErrInternal
+		return nil, nil, ErrInternal
 	}
 
 	for i := range data {
@@ -318,7 +339,7 @@ func GetUserOrders(userID int, db *gorm.DB, currency string) ([]UserOrderFrontRe
 
 		if err := json.Unmarshal(data[i].RawItems, &data[i].Items); err != nil {
 			log.Printf("error while unmarshalling user order items: %v\n", err)
-			return nil, ErrInternal
+			return nil, nil, ErrInternal
 		}
 
 		data[i].RawItems = nil
@@ -328,5 +349,80 @@ func GetUserOrders(userID int, db *gorm.DB, currency string) ([]UserOrderFrontRe
 		data = []UserOrderFrontResponse{}
 	}
 
-	return data, nil
+	pages := PaginationResponse{}
+
+	parsedURL, err := url.Parse(currentURL)
+	if err != nil {
+		return nil, nil, ErrParsingURL
+	}
+
+	beforeQ := parsedURL.Query()
+	afterQ := parsedURL.Query()
+
+	switch {
+	case len(data) == paginationParams.PerPage+1:
+
+		if paginationParams.After > 0 {
+			beforeId := strconv.Itoa(data[0].ID + 1)
+
+			beforeQ.Set("before", beforeId)
+			parsedURL.RawQuery = beforeQ.Encode()
+			cursorBefore := parsedURL.String()
+
+			pages.CursorBefore = &cursorBefore
+			pages.Before = &beforeId
+		} else if paginationParams.Before > 0 {
+			beforeId := strconv.Itoa(data[0].ID)
+
+			beforeQ.Set("before", beforeId)
+			parsedURL.RawQuery = beforeQ.Encode()
+			cursorBefore := parsedURL.String()
+
+			pages.Before = &beforeId
+			pages.CursorBefore = &cursorBefore
+		}
+
+		afterId := strconv.Itoa(data[len(data)-1].ID)
+
+		afterQ.Set("after", afterId)
+		parsedURL.RawQuery = afterQ.Encode()
+		cursorAfter := parsedURL.String()
+
+		pages.CursorAfter = &cursorAfter
+		pages.After = &afterId
+
+		if paginationParams.Before > 0 {
+			afterId := strconv.Itoa(data[len(data)-1].ID - 1)
+
+			afterQ.Set("after", afterId)
+			parsedURL.RawQuery = afterQ.Encode()
+			cursorAfter := parsedURL.String()
+
+			pages.After = &afterId
+			pages.CursorAfter = &cursorAfter
+			data = data[1:]
+		} else {
+			data = data[:len(data)-1]
+		}
+	case len(data) <= paginationParams.PerPage && paginationParams.Before > 0:
+		afterId := strconv.Itoa(data[len(data)-1].ID - 1)
+
+		afterQ.Set("after", afterId)
+		parsedURL.RawQuery = afterQ.Encode()
+		cursorAfter := parsedURL.String()
+
+		pages.After = &afterId
+		pages.CursorAfter = &cursorAfter
+	case len(data) <= paginationParams.PerPage && paginationParams.After > 0:
+		beforeId := strconv.Itoa(data[0].ID + 1)
+
+		beforeQ.Set("before", beforeId)
+		parsedURL.RawQuery = beforeQ.Encode()
+		cursorBefore := parsedURL.String()
+
+		pages.Before = &beforeId
+		pages.CursorBefore = &cursorBefore
+	}
+
+	return data, &pages, nil
 }
