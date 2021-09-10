@@ -437,7 +437,8 @@ func FindOrderByByIDAndUserID(orderID, userID int, db *gorm.DB, currency string)
 		INNER JOIN users u ON u.id = uo.user_id AND u.deleted_at IS NULL
 		INNER JOIN user_order_items uoi ON uoi.user_order_id = uo.id
 		INNER JOIN shop_items si ON si.id = uoi.shop_item_id
-		WHERE uo.user_id = ? AND uo.id = ?`
+		WHERE uo.user_id = ? AND uo.id = ?
+		GROUP BY uo.id`
 
 	data := UserOrderFrontResponse{}
 	if err := db.Debug().Raw(query, userID, orderID).Take(&data).Error; err != nil {
