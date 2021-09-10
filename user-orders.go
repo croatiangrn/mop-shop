@@ -6,6 +6,7 @@ import (
 	"github.com/stripe/stripe-go/v72/checkout/session"
 	"gorm.io/gorm"
 	"log"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -289,7 +290,11 @@ type UserOrderItemFrontResponse struct {
 	Quantity        int     `json:"quantity"`
 }
 
-func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, currency, currentURL string) ([]UserOrderFrontResponse, *PaginationResponse, error) {
+func getCurrentURL(req *http.Request) string {
+	return req.URL.RequestURI()
+}
+
+func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, currency string, req *http.Request) ([]UserOrderFrontResponse, *PaginationResponse, error) {
 	paginationParams.normalize()
 
 	query := `SELECT 
@@ -351,7 +356,7 @@ func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, c
 
 	pages := PaginationResponse{}
 
-	parsedURL, err := url.Parse(currentURL)
+	parsedURL, err := url.Parse(getCurrentURL(req))
 	if err != nil {
 		return nil, nil, ErrParsingURL
 	}
