@@ -18,4 +18,5 @@ var (
 	ErrSomeItemsDoNotExist       = errors.New("some_items_do_not_exist")
 	ErrInvalidUserOrderID        = errors.New("user_order_id_cannot_be_zero")
 	ErrCommittingTransaction     = errors.New("could_not_commit_db_transaction")
+	ErrParsingURL                = errors.New("could_not_parse_current_url")
 )
