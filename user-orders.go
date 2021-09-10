@@ -310,7 +310,7 @@ func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, c
 		WHERE uo.user_id = ? `
 
 	var userOrdersQuery strings.Builder
-	var params []interface{}
+	params := []interface{}{userID}
 
 	userOrdersQuery.WriteString(query)
 
