@@ -370,6 +370,7 @@ func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, c
 		if paginationParams.After > 0 {
 			beforeId := strconv.Itoa(data[0].ID + 1)
 
+			beforeQ.Del("after")
 			beforeQ.Set("before", beforeId)
 			parsedURL.RawQuery = beforeQ.Encode()
 			cursorBefore := parsedURL.String()
@@ -379,6 +380,7 @@ func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, c
 		} else if paginationParams.Before > 0 {
 			beforeId := strconv.Itoa(data[0].ID)
 
+			beforeQ.Del("after")
 			beforeQ.Set("before", beforeId)
 			parsedURL.RawQuery = beforeQ.Encode()
 			cursorBefore := parsedURL.String()
@@ -399,6 +401,7 @@ func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, c
 		if paginationParams.Before > 0 {
 			afterId := strconv.Itoa(data[len(data)-1].ID - 1)
 
+			afterQ.Del("before")
 			afterQ.Set("after", afterId)
 			parsedURL.RawQuery = afterQ.Encode()
 			cursorAfter := parsedURL.String()
@@ -412,6 +415,7 @@ func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, c
 	case len(data) <= paginationParams.PerPage && paginationParams.Before > 0:
 		afterId := strconv.Itoa(data[len(data)-1].ID - 1)
 
+		afterQ.Del("before")
 		afterQ.Set("after", afterId)
 		parsedURL.RawQuery = afterQ.Encode()
 		cursorAfter := parsedURL.String()
@@ -421,6 +425,7 @@ func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, c
 	case len(data) <= paginationParams.PerPage && paginationParams.After > 0:
 		beforeId := strconv.Itoa(data[0].ID + 1)
 
+		beforeQ.Del("after")
 		beforeQ.Set("before", beforeId)
 		parsedURL.RawQuery = beforeQ.Encode()
 		cursorBefore := parsedURL.String()
