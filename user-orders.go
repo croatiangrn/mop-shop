@@ -278,8 +278,10 @@ type UserOrderFrontResponse struct {
 }
 
 type UserOrderItemFrontResponse struct {
-	ShopItemID   int     `json:"shop_item_id"`
-	ShopItemName string  `json:"shop_item_name"`
-	ItemPrice    float32 `json:"item_price"`
-	Quantity     int     `json:"quantity"`
+	ItemID          int     `json:"item_id"`
+	ItemName        string  `json:"item_name"`
+	ItemPrice       float32 `json:"item_price"`
+	ItemPicture     string  `json:"item_picture"`
+	ItemDescription string  `json:"item_description"`
+	Quantity        int     `json:"quantity"`
 }
