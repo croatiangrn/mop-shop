@@ -329,7 +329,7 @@ func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, c
 	params = append(params, paginationParams.PerPage+1)
 
 	var data []UserOrderFrontResponse
-	if err := db.Debug().Raw(query, userID).Scan(&data).Error; err != nil {
+	if err := db.Debug().Raw(userOrdersQuery.String(), params...).Scan(&data).Error; err != nil {
 		log.Printf("error while getting user orders: %v\n", err)
 		return nil, nil, ErrInternal
 	}
