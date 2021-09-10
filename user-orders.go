@@ -303,7 +303,7 @@ func FindOrdersByUserID(userID int, db *gorm.DB, paginationParams PaginationPara
 		INNER JOIN users u ON u.id = uo.user_id AND u.deleted_at IS NULL
 		INNER JOIN user_order_items uoi ON uoi.user_order_id = uo.id
 		INNER JOIN shop_items si ON si.id = uoi.shop_item_id
-		WHERE uo.user_id = ? AND uoi.is_completed = TRUE `
+		WHERE uo.user_id = ? AND uo.is_completed = TRUE `
 
 	var userOrdersQuery strings.Builder
 	params := []interface{}{userID}
@@ -435,9 +435,9 @@ func FindOrderByByIDAndUserID(orderID, userID int, db *gorm.DB, currency string)
 			) AS raw_items 
 		FROM user_orders uo
 		INNER JOIN users u ON u.id = uo.user_id AND u.deleted_at IS NULL
-		INNER JOIN user_order_items uoi ON uoi.user_order_id = uo.id AND uoi.is_completed = TRUE
+		INNER JOIN user_order_items uoi ON uoi.user_order_id = uo.id
 		INNER JOIN shop_items si ON si.id = uoi.shop_item_id
-		WHERE uo.user_id = ? AND uo.id = ?
+		WHERE uo.user_id = ? AND uo.id = ? AND uo.is_completed = TRUE
 		GROUP BY uo.id`
 
 	data := UserOrderFrontResponse{}
