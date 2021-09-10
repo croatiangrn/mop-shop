@@ -3,6 +3,7 @@ package mop_shop
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/stripe/stripe-go/v72/checkout/session"
 	"gorm.io/gorm"
 	"log"
@@ -251,10 +252,6 @@ func (o *UserOrder) PrepareForOrder(data *CreateUserOrder) error {
 	return nil
 }
 
-func (o *UserOrder) GetOrderByID(orderID int) error {
-	return nil
-}
-
 type UserOrderItem struct {
 	ID          int     `gorm:"primaryKey;" json:"id"`
 	UserOrderID int     `gorm:"not null;index:ix_user_order_item_order_id;" json:"user_order_id"`
@@ -294,7 +291,7 @@ func getCurrentURL(req *http.Request) string {
 	return req.URL.RequestURI()
 }
 
-func FindOrdersByUserID(userID int, db *gorm.DB, paginationParams PaginationParams, currency string, req *http.Request) ([]UserOrderFrontResponse, *PaginationResponse, error) {
+func FindOrdersByUserID(userID int, queryCompletedOrders bool, db *gorm.DB, paginationParams PaginationParams, currency string, req *http.Request) ([]UserOrderFrontResponse, *PaginationResponse, error) {
 	paginationParams.normalize()
 
 	query := `SELECT 
@@ -303,12 +300,15 @@ func FindOrdersByUserID(userID int, db *gorm.DB, paginationParams PaginationPara
 		INNER JOIN users u ON u.id = uo.user_id AND u.deleted_at IS NULL
 		INNER JOIN user_order_items uoi ON uoi.user_order_id = uo.id
 		INNER JOIN shop_items si ON si.id = uoi.shop_item_id
-		WHERE uo.user_id = ? AND uo.is_completed = TRUE `
+		WHERE uo.user_id = ? `
 
 	var userOrdersQuery strings.Builder
 	params := []interface{}{userID}
 
 	userOrdersQuery.WriteString(query)
+	if queryCompletedOrders {
+		userOrdersQuery.WriteString(`AND uo.is_completed = TRUE `)
+	}
 
 	switch {
 	case paginationParams.Before == 0 && paginationParams.After == 0:
@@ -421,8 +421,13 @@ func FindOrdersByUserID(userID int, db *gorm.DB, paginationParams PaginationPara
 	return data, &pages, nil
 }
 
-func FindOrderByByIDAndUserID(orderID, userID int, db *gorm.DB, currency string) (*UserOrderFrontResponse, error) {
-	query := `SELECT 
+func FindOrderByByIDAndUserID(orderID, userID int, queryCompletedOrder bool, db *gorm.DB, currency string) (*UserOrderFrontResponse, error) {
+	completedQuery := ""
+	if queryCompletedOrder {
+		completedQuery = "AND uo.is_completed = TRUE"
+	}
+
+	query := fmt.Sprintf(`SELECT 
 			uo.id, uo.total_price, uo.created_at, uo.updated_at, uo.is_completed, json_arrayagg(
 				json_object(
 					'item_id', si.id,
@@ -437,8 +442,8 @@ func FindOrderByByIDAndUserID(orderID, userID int, db *gorm.DB, currency string)
 		INNER JOIN users u ON u.id = uo.user_id AND u.deleted_at IS NULL
 		INNER JOIN user_order_items uoi ON uoi.user_order_id = uo.id
 		INNER JOIN shop_items si ON si.id = uoi.shop_item_id
-		WHERE uo.user_id = ? AND uo.id = ? AND uo.is_completed = TRUE
-		GROUP BY uo.id`
+		WHERE uo.user_id = ? AND uo.id = ? %s
+		GROUP BY uo.id`, completedQuery)
 
 	data := UserOrderFrontResponse{}
 	if err := db.Debug().Raw(query, userID, orderID).Take(&data).Error; err != nil {
