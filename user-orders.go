@@ -272,7 +272,7 @@ type UserOrderFrontResponse struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 	IsCompleted bool      `gorm:"default:false;" json:"-"`
 	// Items will not be shown in JSON response if it's nil!
-	RawItems json.RawMessage              `json:"raw_items,omitempty"`
+	RawItems json.RawMessage              `gorm:"->" json:"raw_items,omitempty"` // Allow GORM reading only
 	Items    []UserOrderItemFrontResponse `json:"items,omitempty"`
 	db       *gorm.DB
 }
