@@ -268,6 +268,7 @@ func (i *UserOrderItem) TableName() string {
 type UserOrderFrontResponse struct {
 	ID          int       `gorm:"primaryKey;" json:"id"`
 	TotalPrice  float32   `gorm:"not null;" json:"total_price"`
+	Currency    string    `json:"currency"`
 	CreatedAt   time.Time `gorm:"not null;" json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	IsCompleted bool      `gorm:"default:false;" json:"-"`
