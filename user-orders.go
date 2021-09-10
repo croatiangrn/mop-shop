@@ -286,3 +286,47 @@ type UserOrderItemFrontResponse struct {
 	ItemDescription string  `json:"item_description"`
 	Quantity        int     `json:"quantity"`
 }
+
+func GetUserOrders(userID int, db *gorm.DB, currency string) ([]UserOrderFrontResponse, error) {
+	query := `SELECT 
+			uo.id, uo.total_price, uo.created_at, uo.updated_at, uo.is_completed, json_arrayagg(
+				json_object(
+					'item_id', si.id,
+					'item_name', si.item_name,
+					'item_price', uoi.item_price,
+					'item_picture', si.item_picture,
+					'item_description', si.item_description,
+					'quantity', uoi.quantity
+				)
+			) AS raw_items 
+		FROM user_orders uo
+		INNER JOIN users u ON u.id = uo.user_id AND u.deleted_at IS NULL
+		INNER JOIN user_order_items uoi ON uoi.user_order_id = uo.id
+		INNER JOIN shop_items si ON si.id = uoi.shop_item_id
+		WHERE uo.user_id = ?
+		GROUP BY uo.id
+		ORDER BY uo.id DESC LIMIT 10`
+
+	var data []UserOrderFrontResponse
+	if err := db.Debug().Raw(query, userID).Scan(&data).Error; err != nil {
+		log.Printf("error while getting user orders: %v\n", err)
+		return nil, ErrInternal
+	}
+
+	for i := range data {
+		data[i].Currency = currency
+
+		if err := json.Unmarshal(data[i].RawItems, &data[i].Items); err != nil {
+			log.Printf("error while unmarshalling user order items: %v\n", err)
+			return nil, ErrInternal
+		}
+
+		data[i].RawItems = nil
+	}
+
+	if len(data) == 0 {
+		data = []UserOrderFrontResponse{}
+	}
+
+	return data, nil
+}
