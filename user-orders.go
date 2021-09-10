@@ -1,6 +1,7 @@
 package mop_shop
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/stripe/stripe-go/v72/checkout/session"
 	"gorm.io/gorm"
@@ -271,8 +272,9 @@ type UserOrderFrontResponse struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 	IsCompleted bool      `gorm:"default:false;" json:"-"`
 	// Items will not be shown in JSON response if it's nil!
-	Items []UserOrderItemFrontResponse `json:"items,omitempty"`
-	db    *gorm.DB
+	RawItems json.RawMessage              `json:"raw_items,omitempty"`
+	Items    []UserOrderItemFrontResponse `json:"items,omitempty"`
+	db       *gorm.DB
 }
 
 type UserOrderItemFrontResponse struct {
