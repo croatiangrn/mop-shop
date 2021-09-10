@@ -294,20 +294,11 @@ func getCurrentURL(req *http.Request) string {
 	return req.URL.RequestURI()
 }
 
-func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, currency string, req *http.Request) ([]UserOrderFrontResponse, *PaginationResponse, error) {
+func FindOrdersByUserID(userID int, db *gorm.DB, paginationParams PaginationParams, currency string, req *http.Request) ([]UserOrderFrontResponse, *PaginationResponse, error) {
 	paginationParams.normalize()
 
 	query := `SELECT 
-			uo.id, uo.total_price, uo.created_at, uo.updated_at, uo.is_completed, json_arrayagg(
-				json_object(
-					'item_id', si.id,
-					'item_name', si.item_name,
-					'item_price', uoi.item_price,
-					'item_picture', si.item_picture,
-					'item_description', si.item_description,
-					'quantity', uoi.quantity
-				)
-			) AS raw_items 
+			uo.id, uo.total_price, uo.created_at, uo.updated_at, uo.is_completed
 		FROM user_orders uo
 		INNER JOIN users u ON u.id = uo.user_id AND u.deleted_at IS NULL
 		INNER JOIN user_order_items uoi ON uoi.user_order_id = uo.id
@@ -321,13 +312,13 @@ func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, c
 
 	switch {
 	case paginationParams.Before == 0 && paginationParams.After == 0:
-		userOrdersQuery.WriteString(`AND uo.id > ? GROUP BY uo.id ORDER BY uo.id DESC LIMIT ?`)
+		userOrdersQuery.WriteString(`AND uo.id > ? ORDER BY uo.id DESC LIMIT ?`)
 		params = append(params, 0)
 	case paginationParams.After > 0:
-		userOrdersQuery.WriteString(`AND uo.id <= ? GROUP BY uo.id ORDER BY uo.id DESC LIMIT ?`)
+		userOrdersQuery.WriteString(`AND uo.id <= ? ORDER BY uo.id DESC LIMIT ?`)
 		params = append(params, paginationParams.After)
 	case paginationParams.Before > 0:
-		userOrdersQuery.WriteString(`AND uo.id >= ? GROUP BY uo.id ORDER BY uo.id ASC LIMIT ?`)
+		userOrdersQuery.WriteString(`AND uo.id >= ? ORDER BY uo.id ASC LIMIT ?`)
 		params = append(params, paginationParams.Before)
 	}
 
@@ -341,13 +332,6 @@ func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, c
 
 	for i := range data {
 		data[i].Currency = currency
-
-		if err := json.Unmarshal(data[i].RawItems, &data[i].Items); err != nil {
-			log.Printf("error while unmarshalling user order items: %v\n", err)
-			return nil, nil, ErrInternal
-		}
-
-		data[i].RawItems = nil
 	}
 
 	if len(data) == 0 {
@@ -435,4 +419,43 @@ func GetUserOrders(userID int, db *gorm.DB, paginationParams PaginationParams, c
 	}
 
 	return data, &pages, nil
+}
+
+func FindOrderByByIDAndUserID(orderID, userID int, db *gorm.DB, currency string) (*UserOrderFrontResponse, error) {
+	query := `SELECT 
+			uo.id, uo.total_price, uo.created_at, uo.updated_at, uo.is_completed, json_arrayagg(
+				json_object(
+					'item_id', si.id,
+					'item_name', si.item_name,
+					'item_price', uoi.item_price,
+					'item_picture', si.item_picture,
+					'item_description', si.item_description,
+					'quantity', uoi.quantity
+				)
+			) AS raw_items 
+		FROM user_orders uo
+		INNER JOIN users u ON u.id = uo.user_id AND u.deleted_at IS NULL
+		INNER JOIN user_order_items uoi ON uoi.user_order_id = uo.id
+		INNER JOIN shop_items si ON si.id = uoi.shop_item_id
+		WHERE uo.user_id = ? AND uo.id = ?`
+
+	data := UserOrderFrontResponse{}
+	if err := db.Debug().Raw(query, userID, orderID).Take(&data).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+
+		log.Printf("error while getting user orders: %v\n", err)
+		return nil, ErrInternal
+	}
+
+	data.Currency = currency
+	if err := json.Unmarshal(data.RawItems, &data.Items); err != nil {
+		log.Printf("error while unmarshalling user order items: %v\n", err)
+		return nil, ErrInternal
+	}
+
+	data.RawItems = nil
+
+	return &data, nil
 }
