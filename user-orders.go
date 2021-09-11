@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"github.com/stripe/stripe-go/v72/checkout/session"
 	"gorm.io/gorm"
 	"log"
@@ -306,12 +307,13 @@ type UserOrderFrontResponse struct {
 }
 
 type UserOrderItemFrontResponse struct {
-	ItemID          int     `json:"item_id"`
-	ItemName        string  `json:"item_name"`
-	ItemPrice       float32 `json:"item_price"`
-	ItemPicture     string  `json:"item_picture"`
-	ItemDescription string  `json:"item_description"`
-	Quantity        int     `json:"quantity"`
+	ItemID          int      `json:"item_id"`
+	ItemName        string   `json:"item_name"`
+	ItemPriceInt64  *int64   `json:"item_price_int_64,omitempty"`
+	ItemPrice       *float64 `json:"item_price"`
+	ItemPicture     string   `json:"item_picture"`
+	ItemDescription string   `json:"item_description"`
+	Quantity        int      `json:"quantity"`
 }
 
 func getCurrentURL(req *http.Request) string {
@@ -459,7 +461,7 @@ func FindOrderByByIDAndUserID(orderID, userID int, queryCompletedOrder bool, db 
 				json_object(
 					'item_id', si.id,
 					'item_name', si.item_name,
-					'item_price', uoi.item_price,
+					'item_price_int_64', uoi.item_price,
 					'item_picture', si.item_picture,
 					'item_description', si.item_description,
 					'quantity', uoi.quantity
@@ -486,6 +488,14 @@ func FindOrderByByIDAndUserID(orderID, userID int, queryCompletedOrder bool, db 
 	if err := json.Unmarshal(data.RawItems, &data.Items); err != nil {
 		log.Printf("error while unmarshalling user order items: %v\n", err)
 		return nil, ErrInternal
+	}
+
+	for i := range data.Items {
+		if data.Items[i].ItemPriceInt64 != nil && *data.Items[i].ItemPriceInt64 != 0 {
+			price, _ := decimal.New(*data.Items[i].ItemPriceInt64, -2).Float64()
+			data.Items[i].ItemPrice = &price
+			data.Items[i].ItemPriceInt64 = nil
+		}
 	}
 
 	data.RawItems = nil
