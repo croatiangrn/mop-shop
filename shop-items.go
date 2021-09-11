@@ -1,6 +1,7 @@
 package mop_shop
 
 import (
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
@@ -10,16 +11,18 @@ import (
 )
 
 type ShopItemForResponse struct {
-	ID          int     `json:"id"`
-	ItemName    string  `json:"item_name"`
-	ItemPicture *string `json:"item_picture"`
-	ItemPrice   int64   `json:"item_price"`
+	ID             int     `json:"id"`
+	ItemName       string  `json:"item_name"`
+	ItemPicture    *string `json:"item_picture"`
+	ItemPriceInt64 *int64  `json:"item_price_int_64,omitempty"`
+	ItemPrice      string  `json:"item_price"`
 	// ItemCurrency is a virtual field
-	ItemCurrency    string  `gorm:"-" json:"item_currency"`
-	ItemSalePrice   *int64  `json:"item_sale_price"`
-	ItemDescription *string `json:"item_description"`
-	Shippable       bool    `json:"shippable"`
-	Quantity        *int    `json:"quantity"`
+	ItemCurrency       string  `gorm:"-" json:"item_currency"`
+	ItemSalePriceInt64 *int64  `json:"item_sale_price_int_64,omitempty"`
+	ItemSalePrice      *string `json:"item_sale_price"`
+	ItemDescription    *string `json:"item_description"`
+	Shippable          bool    `json:"shippable"`
+	Quantity           *int    `json:"quantity"`
 }
 
 // GetShopItemsForFrontend returns all shop items from DB, if ``isAuthorized`` is false then
@@ -34,7 +37,12 @@ func GetShopItemsForFrontend(isAuthorized bool, currency string, paginationParam
 	var shopQuery strings.Builder
 	var params []interface{}
 
-	shopQuery.WriteString(`SELECT * FROM shop_items WHERE deleted_at IS NULL `)
+	shopQuery.WriteString(`SELECT 
+			id, item_name, item_picture, item_price AS item_price_int_64,
+			item_sale_price AS item_sale_price_int_64, item_description, 
+			shippable, quantity
+		FROM shop_items 
+		WHERE deleted_at IS NULL `)
 
 	switch {
 	case paginationParams.Before == 0 && paginationParams.After == 0:
@@ -59,11 +67,26 @@ func GetShopItemsForFrontend(isAuthorized bool, currency string, paginationParam
 	if isAuthorized {
 		for i := range data {
 			data[i].ItemCurrency = currency
+			if data[i].ItemPriceInt64 != nil && *data[i].ItemPriceInt64 != 0 {
+				data[i].ItemPrice = decimal.New(*data[i].ItemPriceInt64, -2).String()
+				data[i].ItemPriceInt64 = nil
+			}
+
+			if data[i].ItemSalePriceInt64 != nil && *data[i].ItemSalePriceInt64 != 0 {
+				salePrice := decimal.New(*data[i].ItemSalePriceInt64, -2).String()
+				data[i].ItemSalePrice = &salePrice
+				data[i].ItemSalePriceInt64 = nil
+			}
 		}
 	} else {
 		for i := range data {
 			data[i].ItemCurrency = currency
+			if data[i].ItemPriceInt64 != nil && *data[i].ItemPriceInt64 != 0 {
+				data[i].ItemPrice = decimal.New(*data[i].ItemPriceInt64, -2).String()
+				data[i].ItemPriceInt64 = nil
+			}
 			data[i].ItemSalePrice = nil
+			data[i].ItemSalePriceInt64 = nil
 			data[i].Quantity = nil
 		}
 	}
