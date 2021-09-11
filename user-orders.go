@@ -294,12 +294,13 @@ func (i *UserOrderItem) TableName() string {
 
 // UserOrderFrontResponse struct should be used for user requests such as getting all user orders, single user order
 type UserOrderFrontResponse struct {
-	ID          int       `gorm:"primaryKey;" json:"id"`
-	TotalPrice  float32   `gorm:"not null;" json:"total_price"`
-	Currency    string    `json:"currency"`
-	CreatedAt   time.Time `gorm:"not null;" json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	IsCompleted bool      `gorm:"default:false;" json:"-"`
+	ID              int       `json:"id"`
+	TotalPriceInt64 *int64    `gorm:"column:total_price_int_64;" json:"total_price_int_64,omitempty"`
+	TotalPrice      *float64  `json:"total_price"`
+	Currency        string    `json:"currency"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	IsCompleted     bool      `json:"-"`
 	// Items will not be shown in JSON response if it's nil!
 	RawItems json.RawMessage              `json:"raw_items,omitempty"`
 	Items    []UserOrderItemFrontResponse `gorm:"-" json:"items,omitempty"` // GORM -> Ignore this field as it will be manually unmarshalled
@@ -457,7 +458,7 @@ func FindOrderByByIDAndUserID(orderID, userID int, queryCompletedOrder bool, db 
 	}
 
 	query := fmt.Sprintf(`SELECT 
-			uo.id, uo.total_price, uo.created_at, uo.updated_at, uo.is_completed, json_arrayagg(
+			uo.id, uo.total_price AS total_price_int_64, uo.created_at, uo.updated_at, uo.is_completed, json_arrayagg(
 				json_object(
 					'item_id', si.id,
 					'item_name', si.item_name,
@@ -488,6 +489,12 @@ func FindOrderByByIDAndUserID(orderID, userID int, queryCompletedOrder bool, db 
 	if err := json.Unmarshal(data.RawItems, &data.Items); err != nil {
 		log.Printf("error while unmarshalling user order items: %v\n", err)
 		return nil, ErrInternal
+	}
+
+	if data.TotalPriceInt64 != nil && *data.TotalPriceInt64 != 0 {
+		price, _ := decimal.New(*data.TotalPriceInt64, -2).Float64()
+		data.TotalPrice = &price
+		data.TotalPriceInt64 = nil
 	}
 
 	for i := range data.Items {
