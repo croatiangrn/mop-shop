@@ -86,6 +86,7 @@ func (o *UserOrder) CreateEmptyOrder(userID int, clientReferenceID string) error
 	return nil
 }
 
+// Method returns map of type map[itemID]ItemWithStripeInfo{}
 func (o *UserOrder) getProductsFromOrderBySessionID(sessionID string) (map[string]ItemWithStripeInfo, error) {
 	i := session.ListLineItems(sessionID, nil)
 	var productStripeIDs []string
@@ -160,6 +161,7 @@ func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID, clientReferenceID s
 
 	orderItemsQuery := `INSERT INTO user_order_items (user_order_id, shop_item_id, item_price, quantity) VALUES `
 	orderItemsQuerySB.WriteString(orderItemsQuery)
+	var itemIDs []int
 
 	lastAvailableIndex := len(products) - 1
 	counter := 0
@@ -171,12 +173,30 @@ func (o *UserOrder) UpdateEmptyOrderAfterCheckout(sessionID, clientReferenceID s
 		}
 
 		orderItemsQueryParams = append(orderItemsQueryParams, o.ID, products[i].ItemID, products[i].Price, products[i].Quantity)
+		itemIDs = append(itemIDs, products[i].ItemID)
 		counter++
 	}
 
 	if err := tx.Debug().Exec(orderItemsQuerySB.String(), orderItemsQueryParams...).Error; err != nil {
 		tx.Rollback()
 		log.Printf("error while inserting user order items: %v\n", err)
+		return ErrInternal
+	}
+
+	updateShopItemsQuantityQuery := `UPDATE shop_items SET quantity = ( CASE id `
+
+	var updateQuantityQ strings.Builder
+	updateQuantityQ.WriteString(updateShopItemsQuantityQuery)
+
+	for s := range products {
+		updateQuantityQ.WriteString(fmt.Sprintf(`WHEN %d THEN quantity - %d`, products[s].ItemID, products[s].Quantity))
+	}
+
+	updateQuantityQ.WriteString(` END) WHERE id IN (?)`)
+
+	if err := tx.Debug().Exec(updateQuantityQ.String(), itemIDs).Error; err != nil {
+		tx.Rollback()
+		log.Printf("error while bulk-updating quantity of shop items: %v\n", err)
 		return ErrInternal
 	}
 
