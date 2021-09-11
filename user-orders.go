@@ -53,7 +53,10 @@ type ItemWithStripeInfo struct {
 
 func findItemsWithStripeInfo(itemIDs []int, db *gorm.DB) (map[int]ItemWithStripeInfo, error) {
 	var data []ItemWithStripeInfo
-	query := `SELECT id AS item_id, stripe_product_api_id, unique_stripe_price_lookup_key, item_price, item_sale_price FROM shop_items WHERE id IN (?)`
+	query := `SELECT 
+			id AS item_id, stripe_product_api_id, unique_stripe_price_lookup_key, 
+			item_price, item_sale_price, quantity 
+		FROM shop_items WHERE id IN (?)`
 
 	if err := db.Debug().Raw(query, itemIDs).Scan(&data).Error; err != nil {
 		log.Printf("error while getting findItemsWithStripeInfo: %v\n", err)
@@ -252,8 +255,6 @@ func (o *UserOrder) PrepareForOrder(data *CreateUserOrder) error {
 
 	for i := range data.Items {
 		if obj, ok := itemsWithStripeInfo[data.Items[i].ItemID]; ok {
-			fmt.Println(data.Items[i].Quantity, obj.Quantity)
-
 			if data.Items[i].Quantity < obj.Quantity {
 				return ErrInsufficientProductStockAmount
 			}
