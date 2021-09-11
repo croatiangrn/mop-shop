@@ -325,7 +325,7 @@ func FindOrdersByUserID(userID int, queryCompletedOrders bool, db *gorm.DB, pagi
 	paginationParams.normalize()
 
 	query := `SELECT 
-			uo.id, uo.total_price, uo.created_at, uo.updated_at, uo.is_completed
+			uo.id, uo.total_price AS total_price_int_64, uo.created_at, uo.updated_at, uo.is_completed
 		FROM user_orders uo
 		INNER JOIN users u ON u.id = uo.user_id AND u.deleted_at IS NULL
 		INNER JOIN user_order_items uoi ON uoi.user_order_id = uo.id
@@ -362,6 +362,12 @@ func FindOrdersByUserID(userID int, queryCompletedOrders bool, db *gorm.DB, pagi
 
 	for i := range data {
 		data[i].Currency = currency
+
+		if data[i].TotalPriceInt64 != nil && *data[i].TotalPriceInt64 > 0 {
+			price, _ := decimal.New(*data[i].TotalPriceInt64, -2).Float64()
+			data[i].TotalPrice = &price
+			data[i].TotalPriceInt64 = nil
+		}
 	}
 
 	if len(data) == 0 {
