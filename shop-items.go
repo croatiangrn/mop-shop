@@ -1,7 +1,6 @@
 package mop_shop
 
 import (
-	"fmt"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"log"
@@ -70,7 +69,6 @@ func GetShopItemsForFrontend(isAuthorized bool, currency string, paginationParam
 			data[i].ItemCurrency = currency
 			if data[i].ItemPriceInt64 != nil && *data[i].ItemPriceInt64 != 0 {
 				price, _ := decimal.New(*data[i].ItemPriceInt64, -2).Float64()
-				fmt.Println("Price: ", price)
 				data[i].ItemPrice = &price
 				data[i].ItemPriceInt64 = nil
 			}
