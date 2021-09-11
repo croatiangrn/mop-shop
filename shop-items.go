@@ -14,11 +14,11 @@ type ShopItemForResponse struct {
 	ID             int      `json:"id"`
 	ItemName       string   `json:"item_name"`
 	ItemPicture    *string  `json:"item_picture"`
-	ItemPriceInt64 *int64   `json:"item_price_int_64,omitempty"`
+	ItemPriceInt64 *int64   `gorm:"column:item_price_int_64" json:"item_price_int_64,omitempty"`
 	ItemPrice      *float64 `json:"item_price"`
 	// ItemCurrency is a virtual field
 	ItemCurrency       string   `gorm:"-" json:"item_currency"`
-	ItemSalePriceInt64 *int64   `json:"item_sale_price_int_64,omitempty"`
+	ItemSalePriceInt64 *int64   `gorm:"column:item_sale_price_int_64" json:"item_sale_price_int_64,omitempty"`
 	ItemSalePrice      *float64 `json:"item_sale_price"`
 	ItemDescription    *string  `json:"item_description"`
 	Shippable          bool     `json:"shippable"`
