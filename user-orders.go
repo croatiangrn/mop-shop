@@ -252,6 +252,8 @@ func (o *UserOrder) PrepareForOrder(data *CreateUserOrder) error {
 
 	for i := range data.Items {
 		if obj, ok := itemsWithStripeInfo[data.Items[i].ItemID]; ok {
+			fmt.Println(data.Items[i].Quantity, obj.Quantity)
+
 			if data.Items[i].Quantity < obj.Quantity {
 				return ErrInsufficientProductStockAmount
 			}
