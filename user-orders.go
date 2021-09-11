@@ -317,6 +317,28 @@ type UserOrderItemFrontResponse struct {
 	Quantity        int      `json:"quantity"`
 }
 
+func (f *UserOrderItemFrontResponse) UnmarshalJSON(data []byte) error {
+	type Alias UserOrderItemFrontResponse
+
+	aux := struct {
+		ItemPriceInt64 *float64 `json:"item_price_int_64"` // This is needed because by default, JSON returns numbers as float
+		*Alias
+	}{
+		Alias: (*Alias)(f),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if aux.ItemPriceInt64 != nil && *aux.ItemPriceInt64 > 0 {
+		convertedNumber := int64(*aux.ItemPriceInt64)
+		f.ItemPriceInt64 = &convertedNumber
+	}
+
+	return nil
+}
+
 func getCurrentURL(req *http.Request) string {
 	return req.URL.RequestURI()
 }
