@@ -18,6 +18,10 @@ type ShopItemCreate struct {
 	uuid            string
 }
 
+func NewShopItemCreate() *ShopItemCreate {
+	return &ShopItemCreate{}
+}
+
 func (c *ShopItemCreate) SetUUID(uuid string) {
 	c.uuid = uuid
 }
