@@ -4,7 +4,6 @@ import (
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/price"
 	"github.com/stripe/stripe-go/v72/product"
-	"gorm.io/gorm"
 )
 
 type ShopItemCreate struct {
@@ -51,12 +50,18 @@ func (c *ShopItemCreate) Validate() error {
 		return ErrShopItemPriceNegative
 	}
 
-	if c.ItemSalePrice != nil && *c.ItemSalePrice < 0 {
-		return ErrShopItemSalePriceNegative
+	if c.ItemSalePrice != nil {
+		if *c.ItemSalePrice < 0 {
+			return ErrShopItemSalePriceNegative
+		}
+
+		if *c.ItemSalePrice > c.ItemPrice {
+			return ErrShopItemSalePriceGreaterThanItemPrice
+		}
 	}
 
-	if c.Quantity < 0 {
-		return ErrShopItemQuantityNegative
+	if c.Quantity <= 0 {
+		return ErrShopItemQuantityZeroOrNegative
 	}
 
 	return nil
@@ -71,14 +76,17 @@ type ShopItemUpdate struct {
 	Shippable       bool    `json:"shippable"`
 	Quantity        int     `json:"quantity"`
 	stripeProductID string
-	db              *gorm.DB
 }
 
-func NewShopItemUpdate(db *gorm.DB, stripeProductID string) *ShopItemUpdate {
-	return &ShopItemUpdate{db: db, stripeProductID: stripeProductID}
+func NewShopItemUpdate(stripeProductID string) *ShopItemUpdate {
+	return &ShopItemUpdate{stripeProductID: stripeProductID}
 }
 
 func (u *ShopItemUpdate) Validate() error {
+	if len(u.stripeProductID) == 0 {
+		return ErrShopItemValidationNotInitializedProperly
+	}
+
 	if len(u.ItemName) == 0 {
 		return ErrItemNameBlank
 	}
@@ -87,12 +95,18 @@ func (u *ShopItemUpdate) Validate() error {
 		return ErrShopItemPriceNegative
 	}
 
-	if u.ItemSalePrice != nil && *u.ItemSalePrice < 0 {
-		return ErrShopItemSalePriceNegative
+	if u.ItemSalePrice != nil {
+		if *u.ItemSalePrice < 0 {
+			return ErrShopItemSalePriceNegative
+		}
+
+		if *u.ItemSalePrice > u.ItemPrice {
+			return ErrShopItemSalePriceGreaterThanItemPrice
+		}
 	}
 
-	if u.Quantity < 0 {
-		return ErrShopItemQuantityNegative
+	if u.Quantity <= 0 {
+		return ErrShopItemQuantityZeroOrNegative
 	}
 
 	return nil
