@@ -1,6 +1,7 @@
 package mop_shop
 
 import (
+	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/price"
 	"github.com/stripe/stripe-go/v72/product"
@@ -14,10 +15,47 @@ type ShopItemCreate struct {
 	ItemDescription *string `json:"item_description"`
 	Shippable       bool    `json:"shippable"`
 	Quantity        int     `json:"quantity"`
+	uuid            string
 }
 
-func NewShopItemCreate() *ShopItemCreate {
-	return &ShopItemCreate{}
+func (c *ShopItemCreate) SetUUID(uuid string) {
+	c.uuid = uuid
+}
+
+func (c *ShopItemCreate) GetUUID() string {
+	if len(c.uuid) == 0 {
+		c.SetUUID(uuid.New().String())
+	}
+
+	return c.uuid
+}
+
+func (c *ShopItemCreate) GetItemName() string {
+	return c.ItemName
+}
+
+func (c *ShopItemCreate) GetItemPicture() *string {
+	return c.ItemPicture
+}
+
+func (c *ShopItemCreate) GetItemPrice() int64 {
+	return c.ItemPrice
+}
+
+func (c *ShopItemCreate) GetItemSalePrice() *int64 {
+	return c.ItemSalePrice
+}
+
+func (c *ShopItemCreate) GetItemDescription() *string {
+	return c.ItemDescription
+}
+
+func (c *ShopItemCreate) GetShippable() bool {
+	return c.Shippable
+}
+
+func (c *ShopItemCreate) GetQuantity() int {
+	return c.Quantity
 }
 
 func (c *ShopItemCreate) createStripeProduct(name string, description *string) (*stripe.Product, error) {
@@ -84,7 +122,7 @@ func NewShopItemUpdate(stripeProductID string) *ShopItemUpdate {
 
 func (u *ShopItemUpdate) Validate() error {
 	if len(u.stripeProductID) == 0 {
-		return ErrShopItemValidationNotInitializedProperly
+		return ErrShopItemNotInitializedProperly
 	}
 
 	if len(u.ItemName) == 0 {
