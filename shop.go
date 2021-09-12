@@ -2,13 +2,26 @@ package mop_shop
 
 import (
 	"errors"
-	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/product"
 	"gorm.io/gorm"
 	"log"
 	"time"
 )
+
+type shopItemCreateInterface interface {
+	GetItemName() string
+	GetItemPicture() *string
+	GetItemPrice() int64
+	GetItemSalePrice() *int64
+	GetItemDescription() *string
+	GetShippable() bool
+	GetQuantity() int
+	createStripeProduct(name string, description *string) (*stripe.Product, error)
+	createStripeProductPrice(product *stripe.Product, unitAmount int64, lookupKey string) (*stripe.Price, error)
+	GetUUID() string
+	Validate() error
+}
 
 type ShopItem struct {
 	ID                         int        `gorm:"primaryKey" json:"id"`
@@ -41,10 +54,6 @@ func NewShopItemForUpdate(db *gorm.DB, shopItemID int, stripeKey string, stripeP
 	return &ShopItem{ID: shopItemID, db: db, StripeProductApiID: stripeProductApiID, UniqueStripePriceLookupKey: uniqueStripePriceLookupKey}
 }
 
-func (i *ShopItem) setUpdatedAt() {
-	i.UpdatedAt = time.Now()
-}
-
 func (i *ShopItem) FindOneByID(shopItemID int) error {
 	query := `SELECT * FROM shop_items WHERE id = ? AND deleted_at IS NULL`
 
@@ -59,7 +68,11 @@ func (i *ShopItem) FindOneByID(shopItemID int) error {
 	return nil
 }
 
-func (i *ShopItem) Create(data *ShopItemCreate) error {
+func (i *ShopItem) Create(data shopItemCreateInterface, currentTime time.Time) error {
+	if i.db == nil {
+		return ErrShopItemNotInitializedProperly
+	}
+
 	if data == nil {
 		return ErrShopItemCreateBlank
 	}
@@ -68,35 +81,34 @@ func (i *ShopItem) Create(data *ShopItemCreate) error {
 		return err
 	}
 
-	i.ItemName = data.ItemName
-	i.ItemPicture = data.ItemPicture
-	i.ItemPrice = data.ItemPrice
-	i.ItemSalePrice = data.ItemSalePrice
-	i.ItemDescription = data.ItemDescription
-	i.Shippable = data.Shippable
-	i.Quantity = data.Quantity
-	i.CreatedAt = time.Now()
-	i.setUpdatedAt()
+	i.ItemName = data.GetItemName()
+	i.ItemPicture = data.GetItemPicture()
+	i.ItemPrice = data.GetItemPrice()
+	i.ItemSalePrice = data.GetItemSalePrice()
+	i.ItemDescription = data.GetItemDescription()
+	i.Shippable = data.GetShippable()
+	i.Quantity = data.GetQuantity()
+	i.CreatedAt = currentTime
+	i.UpdatedAt = currentTime
 
-	stripeProduct, err := data.createStripeProduct(data.ItemName, data.ItemDescription)
+	stripeProduct, err := data.createStripeProduct(data.GetItemName(), data.GetItemDescription())
 	if err != nil {
 		log.Printf("error occurred while creating stripe product: %v", err)
 		return err
 	}
 
-	itemPrice := data.ItemPrice
-	if data.ItemSalePrice != nil {
-		itemPrice = *data.ItemSalePrice
+	itemPrice := data.GetItemPrice()
+	if data.GetItemSalePrice() != nil {
+		itemPrice = *data.GetItemSalePrice()
 	}
 
-	lookUpKey := uuid.New().String()
+	lookUpKey := data.GetUUID()
 	if _, err := data.createStripeProductPrice(stripeProduct, itemPrice, lookUpKey); err != nil {
 		log.Printf("error occurred while creating stripe product price: %v", err)
 		return err
 	}
 
-	insertQuery := `INSERT INTO shop_items (item_name, item_picture, item_price, item_sale_price, item_description, 
-		shippable, quantity, stripe_product_api_id, unique_stripe_price_lookup_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	insertQuery := `INSERT INTO shop_items (item_name, item_picture, item_price, item_sale_price, item_description, shippable, quantity, stripe_product_api_id, unique_stripe_price_lookup_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	params := []interface{}{i.ItemName, i.ItemPicture, i.ItemPrice, i.ItemSalePrice, i.ItemDescription, i.Shippable,
 		i.Quantity, stripeProduct.ID, lookUpKey, i.CreatedAt, i.UpdatedAt}
@@ -133,7 +145,6 @@ func (i *ShopItem) Update(data *ShopItemUpdate) error {
 	i.ItemDescription = data.ItemDescription
 	i.Shippable = data.Shippable
 	i.Quantity = data.Quantity
-	i.setUpdatedAt()
 
 	if _, err := data.updateStripeProduct(i.StripeProductApiID, i.ItemName, i.ItemDescription); err != nil {
 		log.Printf("error occurred while updating stripe product: %v", err)
@@ -164,9 +175,8 @@ func (i *ShopItem) Update(data *ShopItemUpdate) error {
 	return nil
 }
 
-func (i *ShopItem) Delete(shopItemID int) error {
-	currentTime := time.Now()
-	i.setUpdatedAt()
+func (i *ShopItem) Delete(shopItemID int, currentTime time.Time) error {
+	i.UpdatedAt = currentTime
 	i.DeletedAt = &currentTime
 
 	softDeleteQuery := `UPDATE shop_items SET deleted_at = NOW() WHERE id = ?`

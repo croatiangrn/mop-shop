@@ -6,6 +6,9 @@ import (
 	"testing"
 )
 
+type StripeProductTest struct {
+}
+
 func TestShopItemCreate_Validate(t *testing.T) {
 	type fields struct {
 		ItemName        string
@@ -144,7 +147,7 @@ func TestShopItemUpdate_Validate(t *testing.T) {
 				Quantity:        1,
 				stripeProductID: "",
 			},
-			wantErr: ErrShopItemValidationNotInitializedProperly,
+			wantErr: ErrShopItemNotInitializedProperly,
 		},
 		{
 			name: "Item name cannot be blank",
