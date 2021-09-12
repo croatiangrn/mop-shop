@@ -19,7 +19,7 @@ type ShopItem struct {
 	ItemDescription            *string    `gorm:"type:text;default:null;" json:"item_description"`
 	Shippable                  bool       `gorm:"not null;default:false;" json:"shippable"`
 	Quantity                   int        `gorm:"not null; default:0;" json:"quantity"`
-	StripeProductApiID         string     `gorm:"not null; type:varchar(255);unique_index:ux_stripe_product_api_id;" json:"stripe_product_api_id"`
+	StripeProductApiID         string     `gorm:"not null; type:varchar(255);uniqueIndex:ux_stripe_product_api_id;" json:"stripe_product_api_id"`
 	UniqueStripePriceLookupKey string     `gorm:"type:varchar(36);" json:"unique_stripe_price_lookup_key"`
 	CreatedAt                  time.Time  `gorm:"not null;" json:"created_at"`
 	UpdatedAt                  time.Time  `gorm:"not null;" json:"updated_at"`
